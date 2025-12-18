@@ -149,7 +149,7 @@ async function sendTestData() {
     console.log('Ingredients:', sampleData.ingredients.length)
     console.log('')
 
-    const response = await fetch('http://localhost:3000/api/mo/receive', {
+    const response = await fetch('http://localhost:4000/api/mo/receive', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -163,7 +163,7 @@ async function sendTestData() {
     if (result.success) {
       console.log('✅ Data berhasil dikirim!')
       console.log('Response:', JSON.stringify(result, null, 2))
-      console.log('\n📊 Buka browser dan akses: http://localhost:3000')
+      console.log('\n📊 Buka browser dan akses: http://localhost:4000')
     } else {
       console.error('❌ Gagal mengirim data!')
       console.error('Error:', result.error)

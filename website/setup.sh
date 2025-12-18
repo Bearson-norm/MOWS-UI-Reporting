@@ -55,13 +55,13 @@ else
 fi
 echo ""
 
-# Check if port 3000 is available
-echo "🔍 Checking if port 3000 is available..."
-if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "⚠️  Warning: Port 3000 is already in use!"
+# Check if port 4000 is available
+echo "🔍 Checking if port 4000 is available..."
+if lsof -Pi :4000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "⚠️  Warning: Port 4000 is already in use!"
     echo "You can use a different port by running: PORT=8080 npm start"
 else
-    echo "✅ Port 3000 is available"
+    echo "✅ Port 4000 is available"
 fi
 echo ""
 
@@ -73,7 +73,8 @@ echo "🚀 To start the server, run:"
 echo "   npm start"
 echo ""
 echo "🌐 Then open your browser and visit:"
-echo "   http://localhost:3000"
+echo "   http://localhost:4000 (local)"
+echo "   http://YOUR_VPS_IP:4000 (from external)"
 echo ""
 echo "🧪 To test with sample data, run:"
 echo "   node test-send-data.js"

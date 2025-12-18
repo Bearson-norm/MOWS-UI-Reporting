@@ -37,7 +37,7 @@ npm start
 npm run dev
 ```
 
-Server akan berjalan di: **http://localhost:3000**
+Server akan berjalan di: **http://localhost:4000**
 
 ## 📡 API Endpoints
 
@@ -191,7 +191,7 @@ Endpoint untuk menghapus data MO.
 ### Mengirim Data MO
 
 ```bash
-curl -X POST http://localhost:3000/api/mo/receive \
+curl -X POST http://localhost:4000/api/mo/receive \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
@@ -241,13 +241,13 @@ curl -X POST http://localhost:3000/api/mo/receive \
 ### Mendapatkan List MO
 
 ```bash
-curl http://localhost:3000/api/mo-list
+curl http://localhost:4000/api/mo-list
 ```
 
 ### Mendapatkan Detail MO
 
 ```bash
-curl http://localhost:3000/api/mo-receiver/1
+curl http://localhost:4000/api/mo-receiver/1
 ```
 
 ## 🗄️ Database Schema
@@ -274,7 +274,7 @@ Database menggunakan SQLite dengan file `mo_receiver.db`.
 ## 📱 Cara Menggunakan Website
 
 1. **Buka Browser**
-   - Akses: http://localhost:3000
+   - Akses: http://localhost:4000 (atau http://YOUR_VPS_IP:4000 untuk akses dari luar)
 
 2. **Lihat Daftar MO**
    - Halaman utama menampilkan daftar semua MO yang diterima
@@ -302,7 +302,7 @@ Database menggunakan SQLite dengan file `mo_receiver.db`.
 
 Edit file `server.js`:
 ```javascript
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 4000
 ```
 
 Atau jalankan dengan environment variable:
@@ -334,7 +334,7 @@ Untuk mengirim data dari website https://mows.moof-set.web.id ke website ini:
 
 ### Konfigurasi di Website Eksternal:
 
-1. **Base URL**: `http://your-server-ip:3000`
+1. **Base URL**: `http://your-vps-ip:4000`
 2. **Endpoint**: `/api/mo/receive`
 3. **Method**: POST
 4. **Headers**:
@@ -347,7 +347,7 @@ Untuk mengirim data dari website https://mows.moof-set.web.id ke website ini:
 ```javascript
 async function sendDataToReceiver(moData) {
   try {
-    const response = await fetch('http://your-server-ip:3000/api/mo/receive', {
+    const response = await fetch('http://your-vps-ip:4000/api/mo/receive', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -382,7 +382,7 @@ async function sendDataToReceiver(moData) {
 Jika terjadi error database, hapus file `mo_receiver.db` dan restart server. Database akan dibuat ulang otomatis.
 
 ### Port Already in Use
-Jika port 3000 sudah digunakan, ubah port dengan:
+Jika port 4000 sudah digunakan, ubah port dengan:
 ```bash
 PORT=8080 npm start
 ```

@@ -4,7 +4,8 @@ const path = require('path')
 const cors = require('cors')
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 4000
+const HOST = process.env.HOST || '0.0.0.0'
 
 // Middleware
 app.use(cors())
@@ -284,10 +285,11 @@ app.get('/', (req, res) => {
 })
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`)
-  console.log(`API endpoint for receiving data: http://localhost:${PORT}/api/mo/receive`)
-  console.log(`API endpoint for MO list: http://localhost:${PORT}/api/mo-list`)
+app.listen(PORT, HOST, () => {
+  console.log(`Server is running on http://${HOST}:${PORT}`)
+  console.log(`API endpoint for receiving data: http://${HOST}:${PORT}/api/mo/receive`)
+  console.log(`API endpoint for MO list: http://${HOST}:${PORT}/api/mo-list`)
+  console.log(`For external access, use your VPS IP: http://YOUR_VPS_IP:${PORT}`)
 })
 
 // Graceful shutdown
