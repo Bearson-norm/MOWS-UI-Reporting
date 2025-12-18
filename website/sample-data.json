@@ -1,0 +1,241 @@
+{
+  "work_order": "MO-2024-002",
+  "sku": "SKU-DEMO-002",
+  "formulation_name": "Formula Demo Lengkap",
+  "production_date": "2024-12-19T07:00:00Z",
+  "planned_quantity": 2000.0,
+  "status": "completed",
+  "operator_name": "Jane Smith",
+  "end_time": "2024-12-19T15:45:00Z",
+  "ingredients": [
+    {
+      "ingredient_id": "ingredient-uuid-001",
+      "ingredient_code": "DEMO-001",
+      "ingredient_name": "Tepung Terigu",
+      "target_mass": 800.0,
+      "current_accumulated_mass": 802.5,
+      "current_status": "completed",
+      "tolerance_min": 760.0,
+      "tolerance_max": 840.0,
+      "exp_dates": [
+        {
+          "exp_date": "2025-06-30",
+          actual_weight: 402.5
+        },
+        {
+          "exp_date": "2025-08-15",
+          "actual_weight": 400.0
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-001",
+          "session_number": 1,
+          "actual_mass": 402.5,
+          "accumulated_mass": 402.5,
+          "status": "completed",
+          "tolerance_min": 760.0,
+          "tolerance_max": 840.0,
+          "session_started_at": "2024-12-19T07:00:00Z",
+          "session_completed_at": "2024-12-19T07:15:00Z",
+          "notes": "Batch pertama dengan exp date 2025-06-30"
+        },
+        {
+          "session_id": "session-demo-002",
+          "session_number": 2,
+          "actual_mass": 400.0,
+          "accumulated_mass": 802.5,
+          "status": "completed",
+          "tolerance_min": 760.0,
+          "tolerance_max": 840.0,
+          "session_started_at": "2024-12-19T07:20:00Z",
+          "session_completed_at": "2024-12-19T07:35:00Z",
+          "notes": "Batch kedua dengan exp date 2025-08-15"
+        }
+      ]
+    },
+    {
+      "ingredient_id": "ingredient-uuid-002",
+      "ingredient_code": "DEMO-002",
+      "ingredient_name": "Gula Pasir",
+      "target_mass": 400.0,
+      "current_accumulated_mass": 399.8,
+      "current_status": "completed",
+      "tolerance_min": 380.0,
+      "tolerance_max": 420.0,
+      "exp_dates": [
+        {
+          "exp_date": "2026-12-31",
+          "actual_weight": 399.8
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-003",
+          "session_number": 1,
+          "actual_mass": 399.8,
+          "accumulated_mass": 399.8,
+          "status": "completed",
+          "tolerance_min": 380.0,
+          "tolerance_max": 420.0,
+          "session_started_at": "2024-12-19T08:00:00Z",
+          "session_completed_at": "2024-12-19T08:10:00Z",
+          "notes": "Satu kali penimbangan langsung selesai"
+        }
+      ]
+    },
+    {
+      "ingredient_id": "ingredient-uuid-003",
+      "ingredient_code": "DEMO-003",
+      "ingredient_name": "Mentega",
+      "target_mass": 300.0,
+      "current_accumulated_mass": 301.5,
+      "current_status": "completed",
+      "tolerance_min": 285.0,
+      "tolerance_max": 315.0,
+      "exp_dates": [
+        {
+          "exp_date": "2025-03-31",
+          "actual_weight": 150.5
+        },
+        {
+          "exp_date": "2025-04-15",
+          "actual_weight": 151.0
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-004",
+          "session_number": 1,
+          "actual_mass": 150.5,
+          "accumulated_mass": 150.5,
+          "status": "completed",
+          "tolerance_min": 285.0,
+          "tolerance_max": 315.0,
+          "session_started_at": "2024-12-19T09:00:00Z",
+          "session_completed_at": "2024-12-19T09:08:00Z",
+          "notes": "Batch 1 exp 2025-03-31"
+        },
+        {
+          "session_id": "session-demo-005",
+          "session_number": 2,
+          "actual_mass": 151.0,
+          "accumulated_mass": 301.5,
+          "status": "completed",
+          "tolerance_min": 285.0,
+          "tolerance_max": 315.0,
+          "session_started_at": "2024-12-19T09:12:00Z",
+          "session_completed_at": "2024-12-19T09:20:00Z",
+          "notes": "Batch 2 exp 2025-04-15"
+        }
+      ]
+    },
+    {
+      "ingredient_id": "ingredient-uuid-004",
+      "ingredient_code": "DEMO-004",
+      "ingredient_name": "Telur",
+      "target_mass": 250.0,
+      "current_accumulated_mass": 248.0,
+      "current_status": "completed",
+      "tolerance_min": 237.5,
+      "tolerance_max": 262.5,
+      "exp_dates": [
+        {
+          "exp_date": "2024-12-25",
+          "actual_weight": 248.0
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-006",
+          "session_number": 1,
+          "actual_mass": 248.0,
+          "accumulated_mass": 248.0,
+          "status": "completed",
+          "tolerance_min": 237.5,
+          "tolerance_max": 262.5,
+          "session_started_at": "2024-12-19T10:00:00Z",
+          "session_completed_at": "2024-12-19T10:05:00Z",
+          "notes": "Fresh eggs dari supplier lokal"
+        }
+      ]
+    },
+    {
+      "ingredient_id": "ingredient-uuid-005",
+      "ingredient_code": "DEMO-005",
+      "ingredient_name": "Vanilla Extract",
+      "target_mass": 50.0,
+      "current_accumulated_mass": 50.2,
+      "current_status": "completed",
+      "tolerance_min": 47.5,
+      "tolerance_max": 52.5,
+      "exp_dates": [
+        {
+          "exp_date": "2027-01-01",
+          "actual_weight": 50.2
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-007",
+          "session_number": 1,
+          "actual_mass": 50.2,
+          "accumulated_mass": 50.2,
+          "status": "completed",
+          "tolerance_min": 47.5,
+          "tolerance_max": 52.5,
+          "session_started_at": "2024-12-19T11:00:00Z",
+          "session_completed_at": "2024-12-19T11:03:00Z",
+          "notes": "Pure vanilla extract"
+        }
+      ]
+    },
+    {
+      "ingredient_id": "ingredient-uuid-006",
+      "ingredient_code": "DEMO-006",
+      "ingredient_name": "Baking Powder",
+      "target_mass": 200.0,
+      "current_accumulated_mass": 199.5,
+      "current_status": "completed",
+      "tolerance_min": 190.0,
+      "tolerance_max": 210.0,
+      "exp_dates": [
+        {
+          "exp_date": "2026-06-30",
+          "actual_weight": 100.0
+        },
+        {
+          "exp_date": "2026-07-31",
+          "actual_weight": 99.5
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "session-demo-008",
+          "session_number": 1,
+          "actual_mass": 100.0,
+          "accumulated_mass": 100.0,
+          "status": "completed",
+          "tolerance_min": 190.0,
+          "tolerance_max": 210.0,
+          "session_started_at": "2024-12-19T11:30:00Z",
+          "session_completed_at": "2024-12-19T11:35:00Z",
+          "notes": "Batch 1"
+        },
+        {
+          "session_id": "session-demo-009",
+          "session_number": 2,
+          "actual_mass": 99.5,
+          "accumulated_mass": 199.5,
+          "status": "completed",
+          "tolerance_min": 190.0,
+          "tolerance_max": 210.0,
+          "session_started_at": "2024-12-19T11:40:00Z",
+          "session_completed_at": "2024-12-19T11:45:00Z",
+          "notes": "Batch 2"
+        }
+      ]
+    }
+  ]
+}
+
