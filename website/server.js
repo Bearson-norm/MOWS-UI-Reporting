@@ -48,6 +48,26 @@ function initializeDatabase() {
   })
 }
 
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Extract exp_date from notes JSON string
+ */
+function extractExpDateFromNotes(notes) {
+  if (!notes) return null
+  try {
+    if (typeof notes === 'string') {
+      const parsed = JSON.parse(notes)
+      return parsed.exp_date || null
+    } else if (typeof notes === 'object' && notes.exp_date) {
+      return notes.exp_date
+    }
+  } catch (e) {
+    return null
+  }
+  return null
+}
+
 // ==================== API ENDPOINTS ====================
 
 /**
@@ -70,7 +90,38 @@ app.post('/api/mo/receive', (req, res) => {
     // TODO: Verify token here if needed
     // For now, we accept any token for testing
 
-    const data = req.body
+    let data = req.body
+    
+    // Transform data: extract exp_dates from sessions if not present
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+      data.ingredients = data.ingredients.map(ingredient => {
+        // If exp_dates array doesn't exist, build it from sessions
+        if (!ingredient.exp_dates || ingredient.exp_dates.length === 0) {
+          if (ingredient.sessions && Array.isArray(ingredient.sessions)) {
+            const expDatesMap = {}
+            
+            // Group sessions by exp_date
+            ingredient.sessions.forEach(session => {
+              const expDate = session.exp_date || extractExpDateFromNotes(session.notes) || null
+              if (expDate) {
+                if (!expDatesMap[expDate]) {
+                  expDatesMap[expDate] = 0
+                }
+                expDatesMap[expDate] += parseFloat(session.actual_mass || 0)
+              }
+            })
+            
+            // Convert map to array
+            ingredient.exp_dates = Object.keys(expDatesMap).map(expDate => ({
+              exp_date: expDate,
+              actual_weight: expDatesMap[expDate]
+            }))
+          }
+        }
+        
+        return ingredient
+      })
+    }
 
     // Validate required fields
     if (!data.work_order) {
