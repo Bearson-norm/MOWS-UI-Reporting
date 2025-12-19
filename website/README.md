@@ -186,6 +186,15 @@ Endpoint untuk menghapus data MO.
 }
 ```
 
+## 📋 Format Data
+
+API mendukung **dua format data**:
+
+1. **Format Original** (Flat Structure) - Langsung kompatibel ✅
+2. **Format Baru** (Nested Structure) - Memerlukan transformasi ⚠️
+
+Lihat dokumentasi lengkap di [FORMAT_COMPATIBILITY.md](FORMAT_COMPATIBILITY.md)
+
 ## 🧪 Testing API dengan cURL
 
 ### Mengirim Data MO
@@ -248,6 +257,22 @@ curl http://localhost:4000/api/mo-list
 
 ```bash
 curl http://localhost:4000/api/mo-receiver/1
+```
+
+### Test dengan Script
+
+**Format Original:**
+```bash
+node test-send-data.js
+```
+
+**Format Baru (dengan transformasi otomatis):**
+```bash
+# Test ke localhost
+node test-send-data-new-format.js
+
+# Test ke VPS
+node test-send-data-new-format.js https://mows.moof-set.web.id
 ```
 
 ## 🗄️ Database Schema

@@ -1,0 +1,155 @@
+{
+	"info": {
+		"_postman_id": "12345678-1234-1234-1234-123456789abc",
+		"name": "MOWS API Collection",
+		"description": "Collection for MOWS (Manufacturing Order Weighing System) API\n\nBase URL: https://mows.moof-set.web.id\n\nWorkflow untuk mencari MO dengan work_order tertentu:\n1. GET /api/mo-list - Dapatkan semua MO\n2. Cari work_order yang diinginkan dari hasil\n3. GET /api/mo-receiver/:id - Gunakan ID untuk mendapat detail lengkap",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Manufacturing Order",
+			"item": [
+				{
+					"name": "1. Send/Save MO Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer YOUR_TOKEN_HERE",
+								"type": "text",
+								"description": "Required authorization token"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"work_order\": \"PROD/MO/0002\",\n  \"sku\": \"FG-001\",\n  \"formulation_name\": \"Product A Formula\",\n  \"production_date\": \"2024-01-15\",\n  \"planned_quantity\": 1000,\n  \"status\": \"completed\",\n  \"operator_name\": \"John Doe\",\n  \"end_time\": \"2024-01-15T16:30:00\",\n  \"ingredients\": [\n    {\n      \"material_code\": \"RM-001\",\n      \"material_name\": \"Sugar\",\n      \"planned_weight\": 100,\n      \"actual_weight\": 98.5,\n      \"tolerance\": 2,\n      \"status\": \"OK\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mo/receive",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"mo",
+								"receive"
+							]
+						},
+						"description": "POST endpoint untuk mengirim dan menyimpan data Manufacturing Order ke database.\n\nResponse:\n{\n  \"success\": true,\n  \"message\": \"Data received and stored successfully\",\n  \"work_order\": \"PROD/MO/0002\",\n  \"id\": 1\n}"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get All MO List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/mo-list",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"mo-list"
+							]
+						},
+						"description": "GET endpoint untuk mendapatkan list semua Manufacturing Order yang tersimpan.\n\nDari hasil ini, cari work_order yang Anda inginkan (contoh: \"PROD/MO/0002\") dan gunakan ID-nya untuk request detail.\n\nResponse:\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"work_order\": \"PROD/MO/0002\",\n      \"sku\": \"FG-001\",\n      \"formulation_name\": \"Product A Formula\",\n      \"status\": \"completed\",\n      \"production_date\": \"2024-01-15\",\n      \"planned_quantity\": 1000,\n      \"operator_name\": \"John Doe\",\n      \"created_at\": \"2024-01-15 10:00:00\",\n      \"updated_at\": \"2024-01-15 16:30:00\"\n    }\n  ]\n}"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get MO Detail by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/mo-receiver/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"mo-receiver",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "ID dari MO (didapat dari endpoint /api/mo-list)"
+								}
+							]
+						},
+						"description": "GET endpoint untuk mendapatkan detail lengkap Manufacturing Order berdasarkan ID.\n\nGunakan ID yang didapat dari endpoint /api/mo-list.\n\nResponse:\n{\n  \"success\": true,\n  \"data\": {\n    \"workOrder\": {\n      \"work_order\": \"PROD/MO/0002\",\n      \"sku\": \"FG-001\",\n      \"formulation_name\": \"Product A Formula\",\n      \"production_date\": \"2024-01-15\",\n      \"planned_quantity\": 1000,\n      \"status\": \"completed\",\n      \"operator_name\": \"John Doe\",\n      \"end_time\": \"2024-01-15T16:30:00\"\n    },\n    \"ingredients\": [...]\n  }\n}"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Delete MO by ID",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/mo-receiver/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"mo-receiver",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "ID dari MO yang ingin dihapus"
+								}
+							]
+						},
+						"description": "DELETE endpoint untuk menghapus Manufacturing Order berdasarkan ID.\n\nResponse:\n{\n  \"success\": true,\n  \"message\": \"Work order deleted successfully\"\n}"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints untuk operasi Manufacturing Order.\n\nWorkflow untuk mencari MO dengan work_order \"PROD/MO/0002\":\n1. Panggil GET /api/mo-list\n2. Cari entry dengan work_order: \"PROD/MO/0002\"\n3. Catat ID-nya (misalnya id: 1)\n4. Panggil GET /api/mo-receiver/1 untuk detail lengkap"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://mows.moof-set.web.id",
+			"type": "string"
+		}
+	]
+}

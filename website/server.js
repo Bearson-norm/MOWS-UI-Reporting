@@ -48,26 +48,6 @@ function initializeDatabase() {
   })
 }
 
-// ==================== HELPER FUNCTIONS ====================
-
-/**
- * Extract exp_date from notes JSON string
- */
-function extractExpDateFromNotes(notes) {
-  if (!notes) return null
-  try {
-    if (typeof notes === 'string') {
-      const parsed = JSON.parse(notes)
-      return parsed.exp_date || null
-    } else if (typeof notes === 'object' && notes.exp_date) {
-      return notes.exp_date
-    }
-  } catch (e) {
-    return null
-  }
-  return null
-}
-
 // ==================== API ENDPOINTS ====================
 
 /**
@@ -90,58 +70,31 @@ app.post('/api/mo/receive', (req, res) => {
     // TODO: Verify token here if needed
     // For now, we accept any token for testing
 
-    let data = req.body
+    const data = req.body
+
+    // Handle both formats: nested workOrder object or root level fields
+    // Priority: workOrder object > root level fields
+    const workOrderData = data.workOrder || {}
     
-    // Transform data: extract exp_dates from sessions if not present
-    if (data.ingredients && Array.isArray(data.ingredients)) {
-      data.ingredients = data.ingredients.map(ingredient => {
-        // If exp_dates array doesn't exist, build it from sessions
-        if (!ingredient.exp_dates || ingredient.exp_dates.length === 0) {
-          if (ingredient.sessions && Array.isArray(ingredient.sessions)) {
-            const expDatesMap = {}
-            
-            // Group sessions by exp_date
-            ingredient.sessions.forEach(session => {
-              const expDate = session.exp_date || extractExpDateFromNotes(session.notes) || null
-              if (expDate) {
-                if (!expDatesMap[expDate]) {
-                  expDatesMap[expDate] = 0
-                }
-                expDatesMap[expDate] += parseFloat(session.actual_mass || 0)
-              }
-            })
-            
-            // Convert map to array
-            ingredient.exp_dates = Object.keys(expDatesMap).map(expDate => ({
-              exp_date: expDate,
-              actual_weight: expDatesMap[expDate]
-            }))
-          }
-        }
-        
-        return ingredient
-      })
-    }
+    // Get work_order from workOrder object first, then fall back to root level
+    const work_order = workOrderData.work_order || data.work_order
 
     // Validate required fields
-    if (!data.work_order) {
+    if (!work_order) {
       return res.status(400).json({
         success: false,
         error: 'work_order is required'
       })
     }
 
-    // Extract main fields
-    const {
-      work_order,
-      sku,
-      formulation_name,
-      production_date,
-      planned_quantity,
-      status,
-      operator_name,
-      end_time
-    } = data
+    // Extract main fields - prioritize workOrder object, fallback to root level
+    const sku = workOrderData.sku || data.sku || null
+    const formulation_name = workOrderData.formulation_name || data.formulation_name || null
+    const production_date = workOrderData.production_date || data.production_date || null
+    const planned_quantity = workOrderData.planned_quantity !== undefined ? workOrderData.planned_quantity : (data.planned_quantity !== undefined ? data.planned_quantity : null)
+    const status = workOrderData.status || data.status || null
+    const operator_name = workOrderData.operator_name || data.operator_name || null
+    const end_time = workOrderData.end_time || data.end_time || null
 
     // Store complete JSON for later retrieval
     const dataJson = JSON.stringify(data)
@@ -183,11 +136,23 @@ app.post('/api/mo/receive', (req, res) => {
         })
       }
 
-      res.json({
-        success: true,
-        message: 'Data received and stored successfully',
-        work_order: work_order,
-        id: this.lastID
+      // Get the ID - query after insert/update to ensure we have the correct ID
+      // (this.lastID only works reliably for INSERT, not UPDATE via ON CONFLICT)
+      db.get('SELECT id FROM received_work_orders WHERE work_order = ?', [work_order], (err, row) => {
+        if (err) {
+          console.error('Error fetching ID:', err.message)
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to save data: ' + err.message
+          })
+        }
+        
+        res.json({
+          success: true,
+          message: 'Data received and stored successfully',
+          work_order: work_order,
+          id: row ? row.id : null
+        })
       })
     })
 
@@ -269,17 +234,24 @@ app.get('/api/mo-receiver/:id', (req, res) => {
     try {
       const fullData = JSON.parse(row.data_json)
       
+      // Handle both formats: nested workOrder object or root level fields
+      // Priority: workOrder object > root level fields
+      const workOrderData = fullData.workOrder || {}
+      
+      // Extract work_order - prioritize workOrder object, fallback to root level
+      const work_order = workOrderData.work_order || fullData.work_order
+      
       // Transform data to match the expected format
       const responseData = {
         workOrder: {
-          work_order: fullData.work_order,
-          sku: fullData.sku,
-          formulation_name: fullData.formulation_name,
-          production_date: fullData.production_date,
-          planned_quantity: fullData.planned_quantity,
-          status: fullData.status,
-          operator_name: fullData.operator_name,
-          end_time: fullData.end_time
+          work_order: work_order,
+          sku: workOrderData.sku !== undefined ? workOrderData.sku : (fullData.sku !== undefined ? fullData.sku : null),
+          formulation_name: workOrderData.formulation_name || fullData.formulation_name || null,
+          production_date: workOrderData.production_date || fullData.production_date || null,
+          planned_quantity: workOrderData.planned_quantity !== undefined ? workOrderData.planned_quantity : (fullData.planned_quantity !== undefined ? fullData.planned_quantity : null),
+          status: workOrderData.status || fullData.status || null,
+          operator_name: workOrderData.operator_name || fullData.operator_name || null,
+          end_time: workOrderData.end_time || fullData.end_time || null
         },
         ingredients: fullData.ingredients || []
       }
