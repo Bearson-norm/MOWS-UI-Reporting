@@ -44,19 +44,60 @@ jobs:
           cache: ${{ steps.check_lockfile.outputs.exists == 'true' && 'npm' || '' }}
           cache-dependency-path: ${{ steps.check_lockfile.outputs.exists == 'true' && 'website/package-lock.json' || '' }}
       
+      - name: Validate GitHub Secrets
+        run: |
+          echo "🔍 Validating GitHub Secrets..."
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "❌ Error: VPS_HOST secret is not set"
+            echo "Please go to Settings > Secrets and variables > Actions and add VPS_HOST"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_USER }}" ]; then
+            echo "❌ Error: VPS_USER secret is not set"
+            echo "Please go to Settings > Secrets and variables > Actions and add VPS_USER"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "❌ Error: VPS_SSH_KEY secret is not set"
+            echo "Please go to Settings > Secrets and variables > Actions and add VPS_SSH_KEY"
+            exit 1
+          fi
+          echo "✅ All required secrets are set"
+          echo "VPS_HOST: ${{ secrets.VPS_HOST }}"
+          echo "VPS_USER: ${{ secrets.VPS_USER }}"
+          echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}"
+      
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # Add host to known_hosts
+          if [ -n "${{ secrets.VPS_HOST }}" ]; then
+            ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+            echo "✅ Added ${{ secrets.VPS_HOST }} to known_hosts"
+          fi
       
       - name: Test SSH Connection
         run: |
-          if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo 'SSH connection successful'" 2>&1; then
+          echo "🔍 Testing SSH connection to ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}..."
+          if ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              -o BatchMode=yes \
+              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              "echo 'SSH connection successful'" 2>&1; then
             echo "✅ SSH connection successful"
           else
             echo "❌ SSH connection failed"
+            echo ""
+            echo "Troubleshooting steps:"
+            echo "1. Verify VPS_HOST is correct: ${{ secrets.VPS_HOST }}"
+            echo "2. Verify VPS_USER is correct: ${{ secrets.VPS_USER }}"
+            echo "3. Verify VPS_SSH_KEY contains the correct private key"
+            echo "4. Check if SSH key is added to VPS authorized_keys"
+            echo "5. Check if VPS firewall allows SSH connections"
             exit 1
           fi
       
@@ -168,11 +209,36 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed to:** \`${{ secrets.VPS_HOST }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployment Path:** \`${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}/website\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if secrets are set
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "**⚠️ VPS_HOST:** Not configured!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Setup Required" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "GitHub Secrets belum dikonfigurasi. Silakan:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Buka **Settings** > **Secrets and variables** > **Actions**" >> $GITHUB_STEP_SUMMARY
+            echo "2. Tambahkan secrets berikut:" >> $GITHUB_STEP_SUMMARY
+            echo "   - \`VPS_HOST\`: IP address atau domain VPS" >> $GITHUB_STEP_SUMMARY
+            echo "   - \`VPS_USER\`: Username SSH (contoh: root, ubuntu)" >> $GITHUB_STEP_SUMMARY
+            echo "   - \`VPS_SSH_KEY\`: Private SSH key" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📖 Lihat dokumentasi: [.github/SETUP_SECRETS.md](.github/SETUP_SECRETS.md)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Deployed to:** \`${{ secrets.VPS_HOST }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Deployment Path:** \`${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}/website\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ **Status:** Deployment successful!" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Deployment failed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔍 Troubleshooting" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "1. Cek logs di atas untuk detail error" >> $GITHUB_STEP_SUMMARY
+            echo "2. Pastikan semua GitHub Secrets sudah dikonfigurasi" >> $GITHUB_STEP_SUMMARY
+            echo "3. Pastikan VPS bisa diakses via SSH" >> $GITHUB_STEP_SUMMARY
+            echo "4. Lihat dokumentasi: [.github/SETUP_SECRETS.md](.github/SETUP_SECRETS.md)" >> $GITHUB_STEP_SUMMARY
           fi
