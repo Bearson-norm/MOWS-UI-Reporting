@@ -2,7 +2,7 @@
 
 Dokumentasi lengkap untuk semua API endpoints yang tersedia di MO Receiver Website.
 
-## Base URL
+## Base URL LOH
 
 ```
 http://localhost:4001
