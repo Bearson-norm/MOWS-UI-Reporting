@@ -65,13 +65,45 @@ jobs:
           echo "✅ All required secrets are set"
           echo "VPS_HOST: ${{ secrets.VPS_HOST }}"
           echo "VPS_USER: ${{ secrets.VPS_USER }}"
-          echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}"
+          echo "VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}"
       
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 700 ~/.ssh
+          
+          # Write SSH key with proper formatting
+          # Use printf to preserve newlines and handle special characters correctly
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          
+          # Validate SSH key format
+          echo "🔍 Validating SSH key format..."
+          if ! ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null 2>&1; then
+            echo "❌ Error: Invalid SSH key format"
+            echo ""
+            echo "SSH key validation failed. Common issues:"
+            echo "1. Missing -----BEGIN and -----END lines"
+            echo "2. Extra spaces or characters at start/end"
+            echo "3. Incorrect line breaks"
+            echo "4. Key was truncated or corrupted"
+            echo ""
+            echo "First 100 characters of key:"
+            head -c 100 ~/.ssh/deploy_key
+            echo ""
+            echo ""
+            echo "Last 100 characters of key:"
+            tail -c 100 ~/.ssh/deploy_key
+            echo ""
+            exit 1
+          fi
+          
+          # Get key fingerprint for verification
+          KEY_FINGERPRINT=$(ssh-keygen -l -f ~/.ssh/deploy_key 2>/dev/null | awk '{print $2}')
+          KEY_TYPE=$(ssh-keygen -l -f ~/.ssh/deploy_key 2>/dev/null | awk '{print $4}')
+          echo "✅ SSH key is valid"
+          echo "📝 Key type: $KEY_TYPE"
+          echo "📝 Key fingerprint: $KEY_FINGERPRINT"
           
           # Add host to known_hosts
           if [ -n "${{ secrets.VPS_HOST }}" ]; then
@@ -82,22 +114,52 @@ jobs:
       - name: Test SSH Connection
         run: |
           echo "🔍 Testing SSH connection to ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}..."
-          if ssh -i ~/.ssh/deploy_key \
+          
+          # Test with verbose output for debugging
+          SSH_OUTPUT=$(ssh -v -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
               -o BatchMode=yes \
+              -o IdentitiesOnly=yes \
               ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-              "echo 'SSH connection successful'" 2>&1; then
+              "echo 'SSH connection successful'" 2>&1)
+          SSH_EXIT_CODE=$?
+          
+          if [ $SSH_EXIT_CODE -eq 0 ]; then
             echo "✅ SSH connection successful"
           else
-            echo "❌ SSH connection failed"
+            echo "❌ SSH connection failed (exit code: $SSH_EXIT_CODE)"
             echo ""
-            echo "Troubleshooting steps:"
-            echo "1. Verify VPS_HOST is correct: ${{ secrets.VPS_HOST }}"
-            echo "2. Verify VPS_USER is correct: ${{ secrets.VPS_USER }}"
-            echo "3. Verify VPS_SSH_KEY contains the correct private key"
-            echo "4. Check if SSH key is added to VPS authorized_keys"
-            echo "5. Check if VPS firewall allows SSH connections"
+            echo "=== SSH Debug Output ==="
+            echo "$SSH_OUTPUT" | grep -E "(debug1|error|Permission denied|publickey|libcrypto)" | head -30
+            echo ""
+            echo "=== Troubleshooting Steps ==="
+            echo "1. ✅ Verify VPS_HOST is correct: ${{ secrets.VPS_HOST }}"
+            echo "2. ✅ Verify VPS_USER is correct: ${{ secrets.VPS_USER }}"
+            echo "3. ⚠️  Verify VPS_SSH_KEY format:"
+            echo "   - Must include -----BEGIN and -----END lines"
+            echo "   - No extra spaces at start/end"
+            echo "   - All lines properly formatted"
+            echo "   - Key must be complete (not truncated)"
+            echo "4. ⚠️  Check if PUBLIC key is in VPS authorized_keys:"
+            echo "   Run on VPS: cat ~/.ssh/authorized_keys"
+            echo "   Should contain matching public key from github_actions_deploy.pub"
+            echo "5. ⚠️  Check VPS permissions:"
+            echo "   ~/.ssh should be 700: chmod 700 ~/.ssh"
+            echo "   ~/.ssh/authorized_keys should be 600: chmod 600 ~/.ssh/authorized_keys"
+            echo "6. ⚠️  Check VPS firewall allows SSH (port 22)"
+            echo ""
+            echo "=== Quick Fix Commands (Run on VPS) ==="
+            echo "# Extract public key from private key:"
+            echo "ssh-keygen -y -f ~/.ssh/github_actions_deploy"
+            echo ""
+            echo "# Add to authorized_keys (if not already there):"
+            echo "cat ~/.ssh/github_actions_deploy.pub >> ~/.ssh/authorized_keys"
+            echo "chmod 600 ~/.ssh/authorized_keys"
+            echo ""
+            echo "# Verify public key matches:"
+            echo "ssh-keygen -y -f ~/.ssh/github_actions_deploy"
+            echo "cat ~/.ssh/authorized_keys | grep github-actions"
             exit 1
           fi
       
@@ -105,16 +167,54 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
             set -e  # Exit on error
             
+            DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}"
             echo "🚀 Starting deployment..."
-            echo "📍 Deployment path: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}"
+            echo "📍 Deployment path: \$DEPLOY_PATH"
+            
+            # Check if deployment directory exists
+            if [ ! -d "\$DEPLOY_PATH" ]; then
+              echo "⚠️  Deployment directory does not exist: \$DEPLOY_PATH"
+              echo "📁 Creating directory..."
+              sudo mkdir -p "\$DEPLOY_PATH" || {
+                echo "❌ Failed to create directory. Trying without sudo..."
+                mkdir -p "\$DEPLOY_PATH" || {
+                  echo "❌ Failed to create directory: \$DEPLOY_PATH"
+                  echo "Please create the directory manually or check permissions"
+                  exit 1
+                }
+              }
+              echo "✅ Directory created"
+            fi
+            
+            # Check if it's a git repository
+            if [ ! -d "\$DEPLOY_PATH/.git" ]; then
+              echo "⚠️  Not a git repository. Checking if we need to clone..."
+              if [ -z "\$(ls -A \$DEPLOY_PATH 2>/dev/null)" ]; then
+                echo "📥 Directory is empty. You need to clone the repository first."
+                echo "Run on VPS:"
+                echo "  cd \$(dirname \$DEPLOY_PATH)"
+                echo "  git clone YOUR_REPOSITORY_URL \$(basename \$DEPLOY_PATH)"
+                echo "  cd \$DEPLOY_PATH"
+                echo "  git checkout KMI"
+                exit 1
+              else
+                echo "⚠️  Directory exists but is not a git repository"
+                echo "Please ensure repository is cloned to: \$DEPLOY_PATH"
+                exit 1
+              fi
+            fi
             
             # Navigate to deployment directory
-            cd ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}
+            cd "\$DEPLOY_PATH" || {
+              echo "❌ Failed to change directory to: \$DEPLOY_PATH"
+              exit 1
+            }
+            echo "✅ Changed to deployment directory: \$(pwd)"
             
             # Backup current database (if exists)
             if [ -f "website/kmi_receiver.db" ]; then
@@ -145,8 +245,28 @@ jobs:
             echo "📌 Current commit: $(git rev-parse --short HEAD)"
             echo "📝 Commit message: $(git log -1 --pretty=%B)"
             
+            # Check if website directory exists
+            if [ ! -d "website" ]; then
+              echo "❌ Directory 'website' not found in repository"
+              echo "Current directory contents:"
+              ls -la
+              exit 1
+            fi
+            
             # Navigate to website directory
-            cd website
+            cd website || {
+              echo "❌ Failed to change to website directory"
+              exit 1
+            }
+            echo "✅ Changed to website directory: $(pwd)"
+            
+            # Check if package.json exists
+            if [ ! -f "package.json" ]; then
+              echo "❌ package.json not found in website directory"
+              echo "Current directory contents:"
+              ls -la
+              exit 1
+            fi
             
             # Install/update dependencies
             echo "📦 Installing dependencies..."
@@ -154,9 +274,13 @@ jobs:
               echo "⚠️ npm install failed, trying with --legacy-peer-deps..."
               npm install --production --legacy-peer-deps || {
                 echo "❌ Failed to install dependencies"
+                echo "Checking Node.js and npm versions:"
+                node -v || echo "Node.js not found"
+                npm -v || echo "npm not found"
                 exit 1
               }
             }
+            echo "✅ Dependencies installed successfully"
             
             # Check if PM2 process exists
             echo "🔄 Checking PM2 process..."
@@ -170,11 +294,15 @@ jobs:
             fi
             
             # Save PM2 process list
-            pm2 save
+            pm2 save || echo "⚠️ Failed to save PM2 process list (non-critical)"
             
             # Show PM2 status
             echo "📊 PM2 Status:"
-            pm2 status mo-receiver-kmi
+            pm2 status mo-receiver-kmi || echo "⚠️ Failed to get PM2 status"
+            
+            # Show recent logs
+            echo "📋 Recent PM2 logs:"
+            pm2 logs mo-receiver-kmi --lines 5 --nostream || echo "⚠️ Failed to get logs"
             
             echo "✅ Deployment completed successfully!"
           ENDSSH
@@ -182,8 +310,19 @@ jobs:
       - name: Verify Deployment
         run: |
           echo "🔍 Verifying deployment..."
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
-            cd ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
+            DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}"
+            
+            # Check if directory exists
+            if [ ! -d "\$DEPLOY_PATH" ]; then
+              echo "❌ Deployment directory does not exist: \$DEPLOY_PATH"
+              exit 1
+            fi
+            
+            cd "\$DEPLOY_PATH/website" || {
+              echo "❌ Failed to change to website directory"
+              exit 1
+            }
             
             # Check PM2 process status
             if pm2 list | grep -q "mo-receiver-kmi.*online"; then
@@ -226,7 +365,7 @@ jobs:
             echo "📖 Lihat dokumentasi: [.github/SETUP_SECRETS.md](.github/SETUP_SECRETS.md)" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Deployed to:** \`${{ secrets.VPS_HOST }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "**Deployment Path:** \`${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}/website\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Deployment Path:** \`${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}/website\`" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

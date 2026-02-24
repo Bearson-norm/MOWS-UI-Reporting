@@ -93,26 +93,51 @@ cat ~/.ssh/id_ed25519
 - Copy **PRIVATE KEY** (bukan public key)
 - Harus termasuk baris `-----BEGIN` dan `-----END`
 - Jangan ada spasi tambahan di awal/akhir
+- **Jangan copy karakter `>` yang muncul di terminal** (itu hanya indikator line continuation)
+- Pastikan semua baris key ter-copy dengan lengkap
 
-**Contoh format private key:**
+**Cara Copy yang Benar:**
+
+1. **Gunakan command untuk menampilkan key:**
+   ```bash
+   cat ~/.ssh/github_actions_deploy
+   ```
+
+2. **Copy SEMUA output**, termasuk:
+   - Baris `-----BEGIN OPENSSH PRIVATE KEY-----`
+   - Semua baris di tengah (biasanya 4-5 baris)
+   - Baris `-----END OPENSSH PRIVATE KEY-----`
+
+3. **Paste ke GitHub Secret** tanpa modifikasi apapun
+
+**Contoh format private key yang benar:**
 ```
 -----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
-...
-(many lines)
-...
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2g-
+ZWQyNTUxOQAAACAdPwQq8GFvM5/AJpntJWIl3RhbaGHxzqDy4oFSRJPvsQAAAJiFGrBbh
+RqwAAAAtzc2gtZWQyNTUxOQAAACAdPwQq8GFvM5/AJpntJWIl3RhbaGHxzqDy4oFSRJP
+AAAEDNCKryT0JXe0Xs34shwvmD56CkJtEJQGvh1yRqOHaYzR0/BCrwYW8zn8Amme0lY
+GFtoYfHOoPLigVJEk++xAAAAFWdpdGh1Yi1hY3Rpb25zLWRlcGxveQ==
 -----END OPENSSH PRIVATE KEY-----
 ```
+
+**⚠️ JANGAN copy jika terlihat seperti ini (ada karakter `>`):**
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2g>
+QyNTUxOQAAACAdPwQq8GFvM5/AJpntJWIl3RhbaGHxzqDy4oFSRJPvsQAAAJiFGrBbh>
+```
+Karakter `>` menunjukkan key terpotong atau ada masalah formatting.
 
 #### Secret 4: VPS_DEPLOY_PATH (Optional)
 
 - **Name:** `VPS_DEPLOY_PATH`
 - **Value:** Path deployment di VPS
-- **Default:** `/opt/mo-receiver` (jika tidak diset)
+- **Default:** `/opt/mo-reporting` (jika tidak diset)
 - **Contoh:**
-  - `/opt/mo-receiver`
-  - `/home/user/mo-receiver`
-  - `/var/www/mo-receiver`
+  - `/opt/mo-reporting` (default untuk branch KMI)
+  - `/opt/mo-reporting` (jika menggunakan path lain)
+  - `/home/user/mo-reporting`
 
 **Catatan:** Path ini adalah root repository, aplikasi akan ada di `$VPS_DEPLOY_PATH/website/`
 
@@ -258,7 +283,7 @@ Repository > Settings > Secrets and variables > Actions > New repository secret
 **Lokasi file di VPS:**
 - SSH keys: `~/.ssh/`
 - Authorized keys: `~/.ssh/authorized_keys`
-- Repository: `/opt/mo-receiver/` (atau sesuai VPS_DEPLOY_PATH)
+- Repository: `/opt/mo-reporting/` (atau sesuai VPS_DEPLOY_PATH)
 
 **Test SSH:**
 ```bash

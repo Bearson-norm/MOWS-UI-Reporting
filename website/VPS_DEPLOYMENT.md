@@ -76,7 +76,7 @@ Di repository GitHub, buka **Settings > Secrets and variables > Actions**, tamba
 - `VPS_HOST`: IP address VPS Anda
 - `VPS_USER`: Username SSH (biasanya `root` atau username VPS)
 - `VPS_SSH_KEY`: Private key SSH (isi dari `~/.ssh/github_actions`)
-- `VPS_DEPLOY_PATH`: Path deployment (contoh: `/opt/mo-receiver`)
+- `VPS_DEPLOY_PATH`: Path deployment (contoh: `/opt/mo-reporting`)
 
 ### 3. Buat GitHub Actions Workflow
 
@@ -161,7 +161,7 @@ npm install --production
 ### Masuk ke direktori aplikasi
 
 ```bash
-cd /opt/mo-receiver
+cd /opt/mo-reporting
 ```
 
 ### Install dependencies
@@ -418,7 +418,7 @@ sudo systemctl restart postgresql
 Edit file `.env` untuk menggunakan PostgreSQL:
 
 ```bash
-cd /opt/mo-receiver
+cd /opt/mo-reporting
 nano .env
 ```
 
@@ -454,16 +454,16 @@ Buat script backup:
 
 ```bash
 # Buat direktori backup
-mkdir -p /opt/mo-receiver/backups
+mkdir -p /opt/mo-reporting/backups
 
 # Buat script backup
-sudo nano /opt/mo-receiver/backup-postgresql.sh
+sudo nano /opt/mo-reporting/backup-postgresql.sh
 ```
 
 Isi script:
 ```bash
 #!/bin/bash
-BACKUP_DIR="/opt/mo-receiver/backups"
+BACKUP_DIR="/opt/mo-reporting/backups"
 DB_NAME="kmi_receiver"
 DB_USER="kmi_user"
 DATE=$(date +%Y%m%d_%H%M%S)
@@ -483,7 +483,7 @@ echo "Backup completed: $BACKUP_FILE.gz"
 
 Buat executable:
 ```bash
-chmod +x /opt/mo-receiver/backup-postgresql.sh
+chmod +x /opt/mo-reporting/backup-postgresql.sh
 ```
 
 Setup cron job untuk backup harian:
@@ -492,7 +492,7 @@ Setup cron job untuk backup harian:
 crontab -e
 
 # Tambahkan baris untuk backup setiap hari jam 2 pagi:
-0 2 * * * /opt/mo-receiver/backup-postgresql.sh >> /opt/mo-receiver/backups/backup.log 2>&1
+0 2 * * * /opt/mo-reporting/backup-postgresql.sh >> /opt/mo-reporting/backups/backup.log 2>&1
 ```
 
 ### 8. Restart Aplikasi dengan PostgreSQL
@@ -535,7 +535,7 @@ pm2 logs mo-receiver-kmi
 Buat file `.env` untuk konfigurasi:
 
 ```bash
-cd /opt/mo-receiver
+cd /opt/mo-reporting
 nano .env
 ```
 
@@ -679,7 +679,7 @@ journalctl -u pm2-username -f
 crontab -e
 
 # Tambahkan line ini (backup setiap hari jam 2 pagi)
-0 2 * * * cp /opt/mo-receiver/kmi_receiver.db /opt/mo-receiver/backups/mo_receiver_$(date +\%Y\%m\%d).db
+0 2 * * * cp /opt/mo-reporting/kmi_receiver.db /opt/mo-reporting/backups/mo_receiver_$(date +\%Y\%m\%d).db
 ```
 
 ### Monitor Resource Usage
@@ -731,18 +731,18 @@ sudo kill -9 PID_NUMBER
 
 ```bash
 # Berikan permission yang tepat
-sudo chown -R $USER:$USER /opt/mo-receiver
-chmod -R 755 /opt/mo-receiver
+sudo chown -R $USER:$USER /opt/mo-reporting
+chmod -R 755 /opt/mo-reporting
 ```
 
 ### Database error
 
 ```bash
 # Restore dari backup
-cp /opt/mo-receiver/backups/mo_receiver_YYYYMMDD.db /opt/mo-receiver/kmi_receiver.db
+cp /opt/mo-reporting/backups/mo_receiver_YYYYMMDD.db /opt/mo-reporting/kmi_receiver.db
 
 # Atau buat database baru
-rm /opt/mo-receiver/kmi_receiver.db
+rm /opt/mo-reporting/kmi_receiver.db
 pm2 restart mo-receiver-kmi
 ```
 
@@ -762,7 +762,7 @@ Update otomatis dilakukan oleh GitHub Actions setiap kali push ke branch KMI. Un
 ### Cara Update Manual (Jika GitHub Actions Gagal)
 
 ```bash
-cd /opt/mo-receiver
+cd /opt/mo-reporting
 
 # Backup database dulu
 cp kmi_receiver.db kmi_receiver_backup_$(date +%Y%m%d).db
@@ -792,8 +792,8 @@ pm2 logs mo-receiver-kmi
 - **Application Port**: 4001
 - **Application URL**: http://YOUR_VPS_IP:4001
 - **API Endpoint**: http://YOUR_VPS_IP:4001/api/mo/receive
-- **Install Directory**: /opt/mo-receiver
-- **Database File (SQLite)**: /opt/mo-receiver/kmi_receiver.db
+- **Install Directory**: /opt/mo-reporting
+- **Database File (SQLite)**: /opt/mo-reporting/kmi_receiver.db
 - **Database Name (PostgreSQL)**: kmi_receiver
 
 ### Important Commands
