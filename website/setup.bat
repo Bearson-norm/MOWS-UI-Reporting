@@ -57,14 +57,14 @@ if not exist "public" (
 )
 echo.
 
-REM Check if port 4000 is available
-echo Checking if port 4000 is available...
-netstat -ano | findstr :4000 >nul 2>nul
+REM Check if port 4001 is available
+echo Checking if port 4001 is available...
+netstat -ano | findstr :4001 >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo Warning: Port 4000 is already in use!
+    echo Warning: Port 4001 is already in use!
     echo You can use a different port by running: set PORT=8080 ^&^& npm start
 ) else (
-    echo Port 4000 is available
+    echo Port 4001 is available
 )
 echo.
 
@@ -76,8 +76,8 @@ echo To start the server, run:
 echo    npm start
 echo.
 echo Then open your browser and visit:
-echo    http://localhost:4000 (local)
-echo    http://YOUR_VPS_IP:4000 (from external)
+echo    http://localhost:4001 (local)
+echo    http://YOUR_VPS_IP:4001 (from external)
 echo.
 echo To test with sample data, run:
 echo    node test-send-data.js

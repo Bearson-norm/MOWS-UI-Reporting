@@ -14,10 +14,10 @@ npm install
 npm start
 ```
 
-Server akan berjalan di: **http://localhost:4000**
+Server akan berjalan di: **http://localhost:4001**
 
 ### 3. Buka Browser
-Akses: **http://localhost:4000** (atau **http://YOUR_VPS_IP:4000** untuk akses dari luar)
+Akses: **http://localhost:4001** (atau **http://YOUR_VPS_IP:4001** untuk akses dari luar)
 
 ### 4. Test dengan Sample Data
 Buka terminal baru dan jalankan:
@@ -32,12 +32,12 @@ Data sample akan otomatis masuk ke database dan muncul di website!
 ## 📋 Checklist Setup
 
 - [ ] Node.js sudah terinstall (minimal versi 14.x)
-- [ ] Port 4000 tersedia (tidak digunakan aplikasi lain)
+- [ ] Port 4001 tersedia (tidak digunakan aplikasi lain)
 - [ ] Dependencies sudah terinstall (`npm install`)
 - [ ] Server sudah running (`npm start`)
-- [ ] Browser bisa akses http://localhost:4000 (atau http://YOUR_VPS_IP:4000)
+- [ ] Browser bisa akses http://localhost:4001 (atau http://YOUR_VPS_IP:4001)
 - [ ] Test data sudah berhasil (`node test-send-data.js`)
-- [ ] Firewall VPS sudah dibuka untuk port 4000 (jika deploy ke VPS)
+- [ ] Firewall VPS sudah dibuka untuk port 4001 (jika deploy ke VPS)
 
 ---
 
@@ -57,7 +57,7 @@ Data sample akan otomatis masuk ke database dan muncul di website!
 ### Kirim Data dengan JavaScript:
 
 ```javascript
-fetch('http://YOUR_VPS_IP:4000/api/mo/receive', {
+fetch('http://YOUR_VPS_IP:4001/api/mo/receive', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ fetch('http://YOUR_VPS_IP:4000/api/mo/receive', {
 ### Kirim Data dengan cURL:
 
 ```bash
-curl -X POST http://localhost:4000/api/mo/receive \
+curl -X POST http://localhost:4001/api/mo/receive \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d @sample-data.json
@@ -94,7 +94,7 @@ curl -X POST http://localhost:4000/api/mo/receive \
 ## 🎯 Cara Pakai Website
 
 1. **View List MO**
-   - Buka http://localhost:4000 (atau http://YOUR_VPS_IP:4000)
+   - Buka http://localhost:4001 (atau http://YOUR_VPS_IP:4001)
    - Lihat daftar MO yang sudah diterima
 
 2. **View Report Detail**
@@ -114,12 +114,12 @@ curl -X POST http://localhost:4000/api/mo/receive \
 
 ### Server tidak bisa start?
 ```bash
-# Cek apakah port 4000 sudah digunakan
+# Cek apakah port 4001 sudah digunakan
 # Windows:
-netstat -ano | findstr :4000
+netstat -ano | findstr :4001
 
 # Linux/Mac:
-lsof -i :4000
+lsof -i :4001
 
 # Atau gunakan port lain:
 PORT=8080 npm start
@@ -133,7 +133,7 @@ PORT=8080 npm start
 ### Database error?
 ```bash
 # Hapus database dan restart server (data akan hilang!)
-rm mo_receiver.db
+rm kmi_receiver.db
 npm start
 ```
 
@@ -164,14 +164,14 @@ npm start
    ```
 
 4. **Akses dari luar**
-   - Buka firewall port 4000:
+   - Buka firewall port 4001:
      ```bash
      # Ubuntu/Debian:
-     sudo ufw allow 4000
+     sudo ufw allow 4001
      sudo ufw reload
      
      # CentOS/RHEL:
-     sudo firewall-cmd --permanent --add-port=4000/tcp
+     sudo firewall-cmd --permanent --add-port=4001/tcp
      sudo firewall-cmd --reload
      ```
    - Atau gunakan nginx sebagai reverse proxy
@@ -184,7 +184,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:4000;
+        proxy_pass http://localhost:4001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

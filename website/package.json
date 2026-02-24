@@ -1,7 +1,7 @@
 {
   "name": "mo-receiver-website",
   "version": "1.0.0",
-  "description": "Website Node.js untuk menerima dan menampilkan data Manufacturing Order (MO) dengan SQLite",
+  "description": "Website Node.js untuk menerima dan menampilkan data Manufacturing Order (MO) dengan SQLite atau PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,6 +14,7 @@
     "weighing",
     "penimbangan",
     "sqlite",
+    "postgresql",
     "nodejs",
     "express"
   ],
@@ -22,6 +23,7 @@
   "dependencies": {
     "express": "^4.18.2",
     "sqlite3": "^5.1.6",
+    "pg": "^8.11.3",
     "cors": "^2.8.5"
   },
   "devDependencies": {

@@ -1,51 +1,182 @@
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose()
+const { Pool } = require('pg')
 const path = require('path')
 const cors = require('cors')
 
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 4001
 const HOST = process.env.HOST || '0.0.0.0'
+
+// Database configuration
+const DB_TYPE = process.env.DB_TYPE || 'sqlite' // 'sqlite' or 'postgresql'
+let db = null
+let dbType = DB_TYPE
 
 // Middleware
 app.use(cors())
 app.use(express.json())
 app.use(express.static('public'))
 
-// Initialize SQLite Database
-const db = new sqlite3.Database('./mo_receiver.db', (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message)
-  } else {
-    console.log('Connected to SQLite database')
-    initializeDatabase()
+// Initialize Database
+if (DB_TYPE === 'postgresql') {
+  // PostgreSQL configuration
+  const pgConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'kmi_receiver',
+    user: process.env.DB_USER || 'kmi_user',
+    password: process.env.DB_PASSWORD || '',
   }
-})
+
+  db = new Pool(pgConfig)
+  
+  // Test connection
+  db.query('SELECT NOW()', (err, res) => {
+    if (err) {
+      console.error('Error connecting to PostgreSQL:', err.message)
+    } else {
+      console.log('Connected to PostgreSQL database:', pgConfig.database)
+      initializeDatabase()
+    }
+  })
+} else {
+  // SQLite configuration
+  const dbPath = process.env.DB_PATH || './kmi_receiver.db'
+  db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+      console.error('Error opening database:', err.message)
+    } else {
+      console.log('Connected to SQLite database:', dbPath)
+      initializeDatabase()
+    }
+  })
+}
 
 // Initialize database tables
 function initializeDatabase() {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS received_work_orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      work_order TEXT UNIQUE NOT NULL,
-      sku TEXT,
-      formulation_name TEXT,
-      production_date TEXT,
-      planned_quantity REAL,
-      status TEXT,
-      operator_name TEXT,
-      end_time TEXT,
-      data_json TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Error creating table:', err.message)
-    } else {
-      console.log('Database table ready')
-    }
-  })
+  if (DB_TYPE === 'postgresql') {
+    // PostgreSQL schema
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS received_work_orders (
+        id SERIAL PRIMARY KEY,
+        work_order VARCHAR(255) UNIQUE NOT NULL,
+        sku VARCHAR(255),
+        formulation_name VARCHAR(255),
+        production_date VARCHAR(255),
+        planned_quantity NUMERIC,
+        status VARCHAR(255),
+        operator_name VARCHAR(255),
+        end_time VARCHAR(255),
+        data_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    
+    db.query(createTableSQL, (err) => {
+      if (err) {
+        console.error('Error creating table:', err.message)
+      } else {
+        console.log('PostgreSQL table ready')
+      }
+    })
+  } else {
+    // SQLite schema
+    db.run(`
+      CREATE TABLE IF NOT EXISTS received_work_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        work_order TEXT UNIQUE NOT NULL,
+        sku TEXT,
+        formulation_name TEXT,
+        production_date TEXT,
+        planned_quantity REAL,
+        status TEXT,
+        operator_name TEXT,
+        end_time TEXT,
+        data_json TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Error creating table:', err.message)
+      } else {
+        console.log('SQLite table ready')
+      }
+    })
+  }
+}
+
+// ==================== DATABASE HELPER FUNCTIONS ====================
+
+// Helper function to execute queries (abstracts SQLite vs PostgreSQL differences)
+function dbQuery(sql, params, callback) {
+  if (DB_TYPE === 'postgresql') {
+    // Convert SQLite ? placeholders to PostgreSQL $1, $2, etc.
+    let paramIndex = 1
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`)
+    db.query(pgSql, params, (err, result) => {
+      if (err) {
+        callback(err, null)
+      } else {
+        // Convert PostgreSQL result to SQLite-like format
+        callback(null, result.rows)
+      }
+    })
+  } else {
+    // SQLite
+    db.all(sql, params, callback)
+  }
+}
+
+// Helper function for single row queries
+function dbGet(sql, params, callback) {
+  if (DB_TYPE === 'postgresql') {
+    let paramIndex = 1
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`)
+    db.query(pgSql, params, (err, result) => {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, result.rows[0] || null)
+      }
+    })
+  } else {
+    // SQLite
+    db.get(sql, params, callback)
+  }
+}
+
+// Helper function for INSERT/UPDATE/DELETE
+function dbRun(sql, params, callback) {
+  if (DB_TYPE === 'postgresql') {
+    let paramIndex = 1
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`)
+    db.query(pgSql, params, (err, result) => {
+      if (err) {
+        callback(err)
+      } else {
+        // Return SQLite-like result object
+        callback(null, {
+          lastID: result.rows[0]?.id || null,
+          changes: result.rowCount || 0
+        })
+      }
+    })
+  } else {
+    // SQLite
+    db.run(sql, params, function(err) {
+      if (err) {
+        callback(err)
+      } else {
+        callback(null, {
+          lastID: this.lastID,
+          changes: this.changes
+        })
+      }
+    })
+  }
 }
 
 // ==================== API ENDPOINTS ====================
@@ -72,52 +203,16 @@ app.post('/api/mo/receive', (req, res) => {
 
     const data = req.body
 
-    // Handle both formats: nested workOrder object or root level fields
-    // Priority: workOrder object > root level fields
-    const workOrderData = data.workOrder || {}
-    
-    // Get work_order from workOrder object first, then fall back to root level
-    const work_order = workOrderData.work_order || data.work_order
-
     // Validate required fields
-    if (!work_order) {
+    if (!data.work_order) {
       return res.status(400).json({
         success: false,
         error: 'work_order is required'
       })
     }
 
-    // Extract main fields - prioritize workOrder object, fallback to root level
-    const sku = workOrderData.sku || data.sku || null
-    const formulation_name = workOrderData.formulation_name || data.formulation_name || null
-    const production_date = workOrderData.production_date || data.production_date || null
-    const planned_quantity = workOrderData.planned_quantity !== undefined ? workOrderData.planned_quantity : (data.planned_quantity !== undefined ? data.planned_quantity : null)
-    const status = workOrderData.status || data.status || null
-    const operator_name = workOrderData.operator_name || data.operator_name || null
-    const end_time = workOrderData.end_time || data.end_time || null
-
-    // Store complete JSON for later retrieval
-    const dataJson = JSON.stringify(data)
-
-    // Insert or update data
-    const sql = `
-      INSERT INTO received_work_orders 
-        (work_order, sku, formulation_name, production_date, planned_quantity, status, operator_name, end_time, data_json, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(work_order) 
-      DO UPDATE SET
-        sku = excluded.sku,
-        formulation_name = excluded.formulation_name,
-        production_date = excluded.production_date,
-        planned_quantity = excluded.planned_quantity,
-        status = excluded.status,
-        operator_name = excluded.operator_name,
-        end_time = excluded.end_time,
-        data_json = excluded.data_json,
-        updated_at = CURRENT_TIMESTAMP
-    `
-
-    db.run(sql, [
+    // Extract main fields
+    const {
       work_order,
       sku,
       formulation_name,
@@ -125,36 +220,135 @@ app.post('/api/mo/receive', (req, res) => {
       planned_quantity,
       status,
       operator_name,
-      end_time,
-      dataJson
-    ], function(err) {
-      if (err) {
-        console.error('Error saving data:', err.message)
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to save data: ' + err.message
-        })
-      }
+      end_time
+    } = data
 
-      // Get the ID - query after insert/update to ensure we have the correct ID
-      // (this.lastID only works reliably for INSERT, not UPDATE via ON CONFLICT)
-      db.get('SELECT id FROM received_work_orders WHERE work_order = ?', [work_order], (err, row) => {
+    // Store complete JSON for later retrieval
+    const dataJson = JSON.stringify(data)
+
+    // Insert or update data
+    // For PostgreSQL, we need to handle ON CONFLICT differently and get the ID back
+    if (DB_TYPE === 'postgresql') {
+      const upsertSql = `
+        INSERT INTO received_work_orders 
+          (work_order, sku, formulation_name, production_date, planned_quantity, status, operator_name, end_time, data_json, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+        ON CONFLICT(work_order) 
+        DO UPDATE SET
+          sku = EXCLUDED.sku,
+          formulation_name = EXCLUDED.formulation_name,
+          production_date = EXCLUDED.production_date,
+          planned_quantity = EXCLUDED.planned_quantity,
+          status = EXCLUDED.status,
+          operator_name = EXCLUDED.operator_name,
+          end_time = EXCLUDED.end_time,
+          data_json = EXCLUDED.data_json,
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING id
+      `
+      
+      db.query(upsertSql, [
+        work_order,
+        sku,
+        formulation_name,
+        production_date,
+        planned_quantity,
+        status,
+        operator_name,
+        end_time,
+        dataJson
+      ], (err, result) => {
         if (err) {
-          console.error('Error fetching ID:', err.message)
+          console.error('Error saving data:', err.message)
           return res.status(500).json({
             success: false,
             error: 'Failed to save data: ' + err.message
           })
         }
-        
-        res.json({
-          success: true,
-          message: 'Data received and stored successfully',
-          work_order: work_order,
-          id: row ? row.id : null
+
+        // If no rows returned (shouldn't happen), query for the ID
+        if (result.rows.length === 0) {
+          db.query('SELECT id FROM received_work_orders WHERE work_order = $1', [work_order], (err, idResult) => {
+            if (err) {
+              return res.status(500).json({
+                success: false,
+                error: 'Failed to save data: ' + err.message
+              })
+            }
+            res.json({
+              success: true,
+              message: 'Data received and stored successfully',
+              work_order: work_order,
+              id: idResult.rows[0]?.id || null
+            })
+          })
+        } else {
+          res.json({
+            success: true,
+            message: 'Data received and stored successfully',
+            work_order: work_order,
+            id: result.rows[0].id
+          })
+        }
+      })
+    } else {
+      // SQLite
+      const sql = `
+        INSERT INTO received_work_orders 
+          (work_order, sku, formulation_name, production_date, planned_quantity, status, operator_name, end_time, data_json, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(work_order) 
+        DO UPDATE SET
+          sku = excluded.sku,
+          formulation_name = excluded.formulation_name,
+          production_date = excluded.production_date,
+          planned_quantity = excluded.planned_quantity,
+          status = excluded.status,
+          operator_name = excluded.operator_name,
+          end_time = excluded.end_time,
+          data_json = excluded.data_json,
+          updated_at = CURRENT_TIMESTAMP
+      `
+
+      db.run(sql, [
+        work_order,
+        sku,
+        formulation_name,
+        production_date,
+        planned_quantity,
+        status,
+        operator_name,
+        end_time,
+        dataJson
+      ], function(err) {
+        if (err) {
+          console.error('Error saving data:', err.message)
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to save data: ' + err.message
+          })
+        }
+
+        // For SQLite, this.lastID only works for INSERT, not UPDATE via ON CONFLICT
+        // So we need to query for the ID after insert/update
+        db.get('SELECT id FROM received_work_orders WHERE work_order = ?', [work_order], (err, row) => {
+          if (err) {
+            console.error('Error fetching ID:', err.message)
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to save data: ' + err.message
+            })
+          }
+
+          res.json({
+            success: true,
+            message: 'Data received and stored successfully',
+            work_order: work_order,
+            id: row ? row.id : this.lastID
+          })
         })
       })
-    })
+    }
 
   } catch (error) {
     console.error('Error processing request:', error)
@@ -186,7 +380,7 @@ app.get('/api/mo-list', (req, res) => {
     ORDER BY updated_at DESC
   `
 
-  db.all(sql, [], (err, rows) => {
+  dbQuery(sql, [], (err, rows) => {
     if (err) {
       console.error('Error fetching MO list:', err.message)
       return res.status(500).json({
@@ -197,7 +391,7 @@ app.get('/api/mo-list', (req, res) => {
 
     res.json({
       success: true,
-      data: rows
+      data: rows || []
     })
   })
 })
@@ -215,7 +409,7 @@ app.get('/api/mo-receiver/:id', (req, res) => {
     WHERE id = ?
   `
 
-  db.get(sql, [id], (err, row) => {
+  dbGet(sql, [id], (err, row) => {
     if (err) {
       console.error('Error fetching MO detail:', err.message)
       return res.status(500).json({
@@ -234,24 +428,17 @@ app.get('/api/mo-receiver/:id', (req, res) => {
     try {
       const fullData = JSON.parse(row.data_json)
       
-      // Handle both formats: nested workOrder object or root level fields
-      // Priority: workOrder object > root level fields
-      const workOrderData = fullData.workOrder || {}
-      
-      // Extract work_order - prioritize workOrder object, fallback to root level
-      const work_order = workOrderData.work_order || fullData.work_order
-      
       // Transform data to match the expected format
       const responseData = {
         workOrder: {
-          work_order: work_order,
-          sku: workOrderData.sku !== undefined ? workOrderData.sku : (fullData.sku !== undefined ? fullData.sku : null),
-          formulation_name: workOrderData.formulation_name || fullData.formulation_name || null,
-          production_date: workOrderData.production_date || fullData.production_date || null,
-          planned_quantity: workOrderData.planned_quantity !== undefined ? workOrderData.planned_quantity : (fullData.planned_quantity !== undefined ? fullData.planned_quantity : null),
-          status: workOrderData.status || fullData.status || null,
-          operator_name: workOrderData.operator_name || fullData.operator_name || null,
-          end_time: workOrderData.end_time || fullData.end_time || null
+          work_order: fullData.work_order,
+          sku: fullData.sku,
+          formulation_name: fullData.formulation_name,
+          production_date: fullData.production_date,
+          planned_quantity: fullData.planned_quantity,
+          status: fullData.status,
+          operator_name: fullData.operator_name,
+          end_time: fullData.end_time
         },
         ingredients: fullData.ingredients || []
       }
@@ -279,7 +466,7 @@ app.delete('/api/mo-receiver/:id', (req, res) => {
 
   const sql = `DELETE FROM received_work_orders WHERE id = ?`
 
-  db.run(sql, [id], function(err) {
+  dbRun(sql, [id], (err, result) => {
     if (err) {
       console.error('Error deleting MO:', err.message)
       return res.status(500).json({
@@ -288,7 +475,7 @@ app.delete('/api/mo-receiver/:id', (req, res) => {
       })
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({
         success: false,
         error: 'Work order not found'
@@ -317,13 +504,24 @@ app.listen(PORT, HOST, () => {
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  db.close((err) => {
-    if (err) {
-      console.error('Error closing database:', err.message)
-    } else {
-      console.log('Database connection closed')
-    }
-    process.exit(0)
-  })
+  if (DB_TYPE === 'postgresql') {
+    db.end((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message)
+      } else {
+        console.log('PostgreSQL connection closed')
+      }
+      process.exit(0)
+    })
+  } else {
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message)
+      } else {
+        console.log('SQLite connection closed')
+      }
+      process.exit(0)
+    })
+  }
 })
 

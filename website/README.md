@@ -1,11 +1,11 @@
 # MO Receiver - Manufacturing Order Data Receiver & Viewer
 
-Website Node.js untuk menerima dan menampilkan data Manufacturing Order (MO) dari API eksternal dengan penyimpanan menggunakan SQLite.
+Website Node.js untuk menerima dan menampilkan data Manufacturing Order (MO) dari API eksternal dengan penyimpanan menggunakan SQLite atau PostgreSQL.
 
 ## 📋 Fitur
 
 - ✅ Menerima data MO dari API eksternal via POST request
-- ✅ Menyimpan data ke database SQLite
+- ✅ Menyimpan data ke database SQLite atau PostgreSQL
 - ✅ Menampilkan daftar MO yang diterima
 - ✅ View detail report penimbangan per MO
 - ✅ Generate dan print report summary
@@ -37,7 +37,7 @@ npm start
 npm run dev
 ```
 
-Server akan berjalan di: **http://localhost:4000**
+Server akan berjalan di: **http://localhost:4001**
 
 ## 📡 API Endpoints
 
@@ -200,7 +200,7 @@ Lihat dokumentasi lengkap di [FORMAT_COMPATIBILITY.md](FORMAT_COMPATIBILITY.md)
 ### Mengirim Data MO
 
 ```bash
-curl -X POST http://localhost:4000/api/mo/receive \
+curl -X POST http://localhost:4001/api/mo/receive \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
@@ -250,13 +250,13 @@ curl -X POST http://localhost:4000/api/mo/receive \
 ### Mendapatkan List MO
 
 ```bash
-curl http://localhost:4000/api/mo-list
+curl http://localhost:4001/api/mo-list
 ```
 
 ### Mendapatkan Detail MO
 
 ```bash
-curl http://localhost:4000/api/mo-receiver/1
+curl http://localhost:4001/api/mo-receiver/1
 ```
 
 ### Test dengan Script
@@ -277,7 +277,7 @@ node test-send-data-new-format.js https://mows.moof-set.web.id
 
 ## 🗄️ Database Schema
 
-Database menggunakan SQLite dengan file `mo_receiver.db`.
+Database menggunakan SQLite dengan file `kmi_receiver.db` (default) atau PostgreSQL dengan database `kmi_receiver`.
 
 ### Table: `received_work_orders`
 
@@ -299,7 +299,7 @@ Database menggunakan SQLite dengan file `mo_receiver.db`.
 ## 📱 Cara Menggunakan Website
 
 1. **Buka Browser**
-   - Akses: http://localhost:4000 (atau http://YOUR_VPS_IP:4000 untuk akses dari luar)
+   - Akses: http://localhost:4001 (atau http://YOUR_VPS_IP:4001 untuk akses dari luar)
 
 2. **Lihat Daftar MO**
    - Halaman utama menampilkan daftar semua MO yang diterima
@@ -327,13 +327,38 @@ Database menggunakan SQLite dengan file `mo_receiver.db`.
 
 Edit file `server.js`:
 ```javascript
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 4001
 ```
 
 Atau jalankan dengan environment variable:
 ```bash
 PORT=8080 npm start
 ```
+
+### Menggunakan PostgreSQL
+
+Untuk menggunakan PostgreSQL sebagai database, set environment variables:
+
+```bash
+DB_TYPE=postgresql
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=kmi_receiver
+DB_USER=kmi_user
+DB_PASSWORD=your_password
+```
+
+Atau buat file `.env`:
+```env
+DB_TYPE=postgresql
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=kmi_receiver
+DB_USER=kmi_user
+DB_PASSWORD=your_password
+```
+
+Default menggunakan SQLite jika `DB_TYPE` tidak diset.
 
 ### Token Authentication
 
@@ -359,7 +384,7 @@ Untuk mengirim data dari website https://mows.moof-set.web.id ke website ini:
 
 ### Konfigurasi di Website Eksternal:
 
-1. **Base URL**: `http://your-vps-ip:4000`
+1. **Base URL**: `http://your-vps-ip:4001`
 2. **Endpoint**: `/api/mo/receive`
 3. **Method**: POST
 4. **Headers**:
@@ -372,7 +397,7 @@ Untuk mengirim data dari website https://mows.moof-set.web.id ke website ini:
 ```javascript
 async function sendDataToReceiver(moData) {
   try {
-    const response = await fetch('http://your-vps-ip:4000/api/mo/receive', {
+    const response = await fetch('http://your-vps-ip:4001/api/mo/receive', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -397,17 +422,20 @@ async function sendDataToReceiver(moData) {
 ## 📝 Notes
 
 - Data MO dengan `work_order` yang sama akan di-update (bukan duplikat)
-- Database SQLite disimpan di file `mo_receiver.db` di root directory
+- Database SQLite disimpan di file `kmi_receiver.db` di root directory (default)
+- Database PostgreSQL menggunakan database `kmi_receiver` (jika DB_TYPE=postgresql)
 - Frontend menggunakan React (via CDN) tanpa build process
 - Semua tanggal menggunakan format ISO 8601 (UTC)
 
 ## 🐛 Troubleshooting
 
 ### Database Error
-Jika terjadi error database, hapus file `mo_receiver.db` dan restart server. Database akan dibuat ulang otomatis.
+**SQLite**: Jika terjadi error database, hapus file `kmi_receiver.db` dan restart server. Database akan dibuat ulang otomatis.
+
+**PostgreSQL**: Pastikan PostgreSQL service berjalan dan kredensial di environment variables benar.
 
 ### Port Already in Use
-Jika port 4000 sudah digunakan, ubah port dengan:
+Jika port 4001 sudah digunakan, ubah port dengan:
 ```bash
 PORT=8080 npm start
 ```

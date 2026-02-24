@@ -5,12 +5,12 @@ Dokumentasi lengkap untuk semua API endpoints yang tersedia di MO Receiver Websi
 ## Base URL
 
 ```
-http://localhost:4000
+http://localhost:4001
 ```
 
 Untuk production/VPS, ganti dengan IP atau domain server Anda:
 ```
-http://YOUR_VPS_IP:4000
+http://YOUR_VPS_IP:4001
 ```
 
 ---
@@ -127,7 +127,7 @@ curl -X POST http://localhost:3000/api/mo/receive \
 #### JavaScript Example
 
 ```javascript
-const response = await fetch('http://localhost:4000/api/mo/receive', {
+const response = await fetch('http://localhost:4001/api/mo/receive', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -206,13 +206,13 @@ Tidak ada query parameters.
 #### cURL Example
 
 ```bash
-curl http://localhost:4000/api/mo-list
+curl http://localhost:4001/api/mo-list
 ```
 
 #### JavaScript Example
 
 ```javascript
-const response = await fetch('http://localhost:4000/api/mo-list')
+const response = await fetch('http://localhost:4001/api/mo-list')
 const result = await response.json()
 
 if (result.success) {
@@ -306,14 +306,14 @@ Tidak memerlukan authentication.
 #### cURL Example
 
 ```bash
-curl http://localhost:4000/api/mo-receiver/1
+curl http://localhost:4001/api/mo-receiver/1
 ```
 
 #### JavaScript Example
 
 ```javascript
 const moId = 1
-const response = await fetch(`http://localhost:4000/api/mo-receiver/${moId}`)
+const response = await fetch(`http://localhost:4001/api/mo-receiver/${moId}`)
 const result = await response.json()
 
 if (result.success) {
@@ -365,14 +365,14 @@ Tidak memerlukan authentication (consider adding auth for production).
 #### cURL Example
 
 ```bash
-curl -X DELETE http://localhost:4000/api/mo-receiver/1
+curl -X DELETE http://localhost:4001/api/mo-receiver/1
 ```
 
 #### JavaScript Example
 
 ```javascript
 const moId = 1
-const response = await fetch(`http://localhost:4000/api/mo-receiver/${moId}`, {
+const response = await fetch(`http://localhost:4001/api/mo-receiver/${moId}`, {
   method: 'DELETE'
 })
 
@@ -527,7 +527,7 @@ Untuk integrasi otomatis, website eksternal bisa mengirim data setiap kali ada w
 // Di website eksternal (https://mows.moof-set.web.id)
 async function sendToReceiver(workOrderData) {
   try {
-    const response = await fetch('http://your-receiver-server:4000/api/mo/receive', {
+    const response = await fetch('http://your-receiver-server:4001/api/mo/receive', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
