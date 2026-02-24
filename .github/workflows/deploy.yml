@@ -28,23 +28,37 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || 'KMI' }}
       
+      - name: Check package-lock.json exists
+        id: check_lockfile
+        run: |
+          if [ -f "website/package-lock.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: website/package-lock.json
+          cache: ${{ steps.check_lockfile.outputs.exists == 'true' && 'npm' || '' }}
+          cache-dependency-path: ${{ steps.check_lockfile.outputs.exists == 'true' && 'website/package-lock.json' || '' }}
       
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
       
       - name: Test SSH Connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo 'SSH connection successful'"
+          if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo 'SSH connection successful'" 2>&1; then
+            echo "✅ SSH connection successful"
+          else
+            echo "❌ SSH connection failed"
+            exit 1
+          fi
       
       - name: Deploy to VPS
         env:
@@ -52,7 +66,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             set -e  # Exit on error
             
             echo "🚀 Starting deployment..."
@@ -70,9 +84,21 @@ jobs:
             
             # Pull latest code
             echo "📥 Pulling latest code from branch KMI..."
-            git fetch origin
-            git checkout KMI
-            git pull origin KMI
+            git fetch origin || {
+              echo "⚠️ git fetch failed, trying to initialize if needed..."
+              if [ ! -d ".git" ]; then
+                echo "❌ Not a git repository. Please ensure repository is cloned first."
+                exit 1
+              fi
+            }
+            git checkout KMI || {
+              echo "⚠️ Branch KMI not found locally, creating from origin..."
+              git checkout -b KMI origin/KMI || exit 1
+            }
+            git pull origin KMI || {
+              echo "⚠️ git pull failed, trying to reset..."
+              git reset --hard origin/KMI || exit 1
+            }
             
             # Show current commit
             echo "📌 Current commit: $(git rev-parse --short HEAD)"
@@ -83,7 +109,13 @@ jobs:
             
             # Install/update dependencies
             echo "📦 Installing dependencies..."
-            npm install --production --no-audit
+            npm install --production --no-audit || {
+              echo "⚠️ npm install failed, trying with --legacy-peer-deps..."
+              npm install --production --legacy-peer-deps || {
+                echo "❌ Failed to install dependencies"
+                exit 1
+              }
+            }
             
             # Check if PM2 process exists
             echo "🔄 Checking PM2 process..."
@@ -92,8 +124,8 @@ jobs:
               pm2 restart mo-receiver-kmi
             else
               echo "🆕 PM2 process not found, starting new process..."
-              cd ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}/website
-              pm2 start server.js --name mo-receiver-kmi --cwd ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}/website
+              # Start PM2 from website directory
+              pm2 start server.js --name mo-receiver-kmi --cwd $(pwd)
             fi
             
             # Save PM2 process list
@@ -109,7 +141,7 @@ jobs:
       - name: Verify Deployment
         run: |
           echo "🔍 Verifying deployment..."
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             cd ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-receiver' }}
             
             # Check PM2 process status
