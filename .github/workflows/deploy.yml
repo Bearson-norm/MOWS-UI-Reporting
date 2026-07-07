@@ -339,12 +339,16 @@ jobs:
             # Check if PM2 process exists
             echo "🔄 Checking PM2 process..."
             if pm2 list | grep -q "mo-receiver-kmi"; then
+              echo "⚠️  Removing legacy PM2 process name mo-receiver-kmi..."
+              pm2 delete mo-receiver-kmi || true
+            fi
+            if pm2 list | grep -q "mo-receiver"; then
               echo "✅ PM2 process found, restarting..."
-              pm2 restart mo-receiver-kmi
+              pm2 restart mo-receiver
             else
               echo "🆕 PM2 process not found, starting new process..."
               # Start PM2 from website directory
-              pm2 start server.js --name mo-receiver-kmi --cwd "\$DEPLOY_PATH/website"
+              pm2 start server.js --name mo-receiver --cwd "\$DEPLOY_PATH/website"
             fi
             
             # Save PM2 process list
@@ -352,17 +356,17 @@ jobs:
             
             # Show PM2 status
             echo "📊 PM2 Status:"
-            pm2 status mo-receiver-kmi || echo "⚠️ Failed to get PM2 status"
+            pm2 status mo-receiver || echo "⚠️ Failed to get PM2 status"
             
             # Show recent logs
             echo "📋 Recent PM2 logs:"
-            pm2 logs mo-receiver-kmi --lines 20 --nostream || echo "⚠️ Failed to get logs"
+            pm2 logs mo-receiver --lines 20 --nostream || echo "⚠️ Failed to get logs"
 
             # Wait for server startup and migrations
             sleep 5
 
             # Verify health endpoint and migration success
-            ERROR_LOGS=\$(pm2 logs mo-receiver-kmi --lines 50 --nostream 2>/dev/null | grep -E "Error (creating tables|migrating|seeding|connecting)" || true)
+            ERROR_LOGS=\$(pm2 logs mo-receiver --lines 50 --nostream 2>/dev/null | grep -E "Error (creating tables|migrating|seeding|connecting)" || true)
             if [ -n "\$ERROR_LOGS" ]; then
               echo "❌ Database initialization errors detected in PM2 logs:"
               echo "\$ERROR_LOGS"
@@ -372,14 +376,14 @@ jobs:
             HEALTH_RESPONSE=\$(curl -sf http://127.0.0.1:4001/api/health || true)
             if [ -z "\$HEALTH_RESPONSE" ]; then
               echo "❌ Health check failed: /api/health not reachable"
-              pm2 logs mo-receiver-kmi --lines 30 --nostream
+              pm2 logs mo-receiver --lines 30 --nostream
               exit 1
             fi
             echo "✅ Health check response: \$HEALTH_RESPONSE"
 
             if ! echo "\$HEALTH_RESPONSE" | grep -q '"dbReady":true\|"dbReady": true'; then
               echo "❌ Database not ready after deployment"
-              pm2 logs mo-receiver-kmi --lines 30 --nostream
+              pm2 logs mo-receiver --lines 30 --nostream
               exit 1
             fi
             echo "✅ Database migrations completed successfully"
@@ -405,9 +409,9 @@ jobs:
             }
             
             # Check PM2 process status
-            if pm2 list | grep -q "mo-receiver-kmi.*online"; then
+            if pm2 list | grep -q "mo-receiver.*online"; then
               echo "✅ Application is running"
-              pm2 logs mo-receiver-kmi --lines 10 --nostream
+              pm2 logs mo-receiver --lines 10 --nostream
               curl -sf http://127.0.0.1:4001/api/health || {
                 echo "❌ Health check failed during verification"
                 exit 1
@@ -415,7 +419,7 @@ jobs:
               echo "✅ Health endpoint verified"
             else
               echo "❌ Application is not running!"
-              pm2 logs mo-receiver-kmi --lines 20
+              pm2 logs mo-receiver --lines 20
               exit 1
             fi
           ENDSSH
