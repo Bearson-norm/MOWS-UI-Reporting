@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MO Receiver - Data Penimbangan</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -182,6 +182,206 @@
       color: #991b1b;
       margin-bottom: 16px;
     }
+
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    }
+
+    .login-card h1 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .login-card p {
+      color: #6b7280;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+      padding: 12px 16px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .dashboard-card {
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 28px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-card:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .dashboard-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-card p {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .dashboard-card .card-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .user-info {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .role-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .role-admin {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .role-user {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .access-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px;
+      background-color: #ecfdf5;
+      color: #047857;
+    }
+
+    .access-tag.disabled {
+      background-color: #f3f4f6;
+      color: #9ca3af;
+    }
   </style>
 </head>
 <body>
@@ -190,8 +390,628 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Import the WeighingReceiverDetail component logic
-    const WeighingReceiverDetail = ({ dataId, onBack }) => {
+    const AUTH_TOKEN_KEY = 'mo_receiver_session_token';
+
+    const DEFAULT_REPORT_LABELS = {
+      legacyName: 'Report Legacy',
+      v2Name: 'Report Format Baru'
+    };
+
+    const buildApiConfig = (type, labels = DEFAULT_REPORT_LABELS) => {
+      if (type === 'legacy') {
+        return {
+          listUrl: '/api/mo-list',
+          detailUrl: (id) => `/api/mo-receiver/${id}`,
+          deleteUrl: (id) => `/api/mo-receiver/${id}`,
+          requireAuth: false,
+          title: labels.legacyName,
+          subtitle: 'Data dari endpoint lama (format flat)',
+          receiveEndpoint: '/api/mo/receive'
+        };
+      }
+      return {
+        listUrl: '/api/mo-v2-list',
+        detailUrl: (id) => `/api/mo-v2-receiver/${id}`,
+        deleteUrl: (id) => `/api/mo-v2-receiver/${id}`,
+        requireAuth: true,
+        title: labels.v2Name,
+        subtitle: 'Data dari endpoint v2 (format nested workOrder)',
+        receiveEndpoint: '/api/mo-v2/receive'
+      };
+    };
+
+    const fetchReportLabels = async () => {
+      try {
+        const response = await fetch('/api/settings/reports', {
+          headers: getAuthHeaders(true)
+        });
+        const result = await response.json();
+        if (result.success) {
+          return result.data;
+        }
+      } catch (err) {
+        console.error('Error fetching report labels:', err);
+      }
+      return DEFAULT_REPORT_LABELS;
+    };
+
+    const getAuthHeaders = (requireAuth) => {
+      const headers = { 'Content-Type': 'application/json' };
+      if (requireAuth) {
+        const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      return headers;
+    };
+
+    const LoginPage = ({ onLoginSuccess }) => {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            sessionStorage.setItem(AUTH_TOKEN_KEY, result.token);
+            onLoginSuccess(result.user);
+          } else {
+            setError(result.error || 'Login gagal');
+          }
+        } catch (err) {
+          setError('Error: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="login-page">
+          <div className="login-card">
+            <h1>MO Receiver</h1>
+            <p>Sistem pelaporan data Manufacturing Order</p>
+            {error && <div className="error">{error}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                {loading ? 'Memproses...' : 'Login'}
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const canAccessReport = (user, reportType) => {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      return reportType === 'legacy' ? user.accessLegacyReport : user.accessV2Report;
+    };
+
+    const Dashboard = ({ user, reportLabels, onSelectReport, onSelectAdmin, onLogout }) => {
+      const hasLegacy = canAccessReport(user, 'legacy');
+      const hasV2 = canAccessReport(user, 'v2');
+      const hasAnyReport = hasLegacy || hasV2;
+
+      return (
+        <div className="container">
+          <div className="header">
+            <div className="top-bar">
+              <div>
+                <h1>Dashboard Report</h1>
+                <p className="user-info">Masuk sebagai: <strong>{user.username}</strong> ({user.role})</p>
+              </div>
+              <button onClick={onLogout} className="btn btn-secondary">Logout</button>
+            </div>
+            <p>{hasAnyReport ? 'Pilih jenis report yang ingin ditampilkan' : 'Anda belum memiliki akses ke halaman report.'}</p>
+          </div>
+
+          <div className="dashboard-grid">
+            {hasLegacy && (
+              <div className="dashboard-card" onClick={() => onSelectReport('legacy')}>
+                <div className="card-icon">📋</div>
+                <h3>{reportLabels.legacyName}</h3>
+                <p>Menampilkan data dari endpoint lama <code>/api/mo/receive</code> yang disimpan di tabel <code>received_work_orders</code>.</p>
+              </div>
+            )}
+            {hasV2 && (
+              <div className="dashboard-card" onClick={() => onSelectReport('v2')}>
+                <div className="card-icon">📊</div>
+                <h3>{reportLabels.v2Name}</h3>
+                <p>Menampilkan data dari endpoint v2 <code>/api/mo-v2/receive</code> dengan format nested workOrder di tabel <code>received_work_orders_v2</code>.</p>
+              </div>
+            )}
+            {user.role === 'admin' && (
+              <div className="dashboard-card" onClick={onSelectAdmin}>
+                <div className="card-icon">👤</div>
+                <h3>Kelola User</h3>
+                <p>Halaman admin untuk menambah, mengubah, dan menghapus akun pengguna sistem.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const UserManagerPage = ({ currentUser, reportLabels, onReportLabelsUpdated, onBack }) => {
+      const [users, setUsers] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [formError, setFormError] = useState(null);
+      const [refreshKey, setRefreshKey] = useState(0);
+      const [labelForm, setLabelForm] = useState({ ...reportLabels });
+      const [labelError, setLabelError] = useState(null);
+      const [savingLabels, setSavingLabels] = useState(false);
+      const [newUser, setNewUser] = useState({
+        username: '',
+        password: '',
+        role: 'user',
+        accessLegacyReport: true,
+        accessV2Report: true
+      });
+      const [creating, setCreating] = useState(false);
+      const [editingUser, setEditingUser] = useState(null);
+      const [editForm, setEditForm] = useState({
+        password: '',
+        role: 'user',
+        accessLegacyReport: true,
+        accessV2Report: true
+      });
+      const [saving, setSaving] = useState(false);
+
+      useEffect(() => {
+        setLabelForm({ ...reportLabels });
+      }, [reportLabels]);
+
+      useEffect(() => {
+        fetchUsers();
+      }, [refreshKey]);
+
+      const handleSaveLabels = async (e) => {
+        e.preventDefault();
+        setLabelError(null);
+        setSavingLabels(true);
+
+        try {
+          const response = await fetch('/api/admin/settings/reports', {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(labelForm)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            onReportLabelsUpdated(result.data);
+          } else {
+            setLabelError(result.error || 'Gagal menyimpan nama report');
+          }
+        } catch (err) {
+          setLabelError('Error: ' + err.message);
+        } finally {
+          setSavingLabels(false);
+        }
+      };
+
+      const fetchUsers = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const response = await fetch('/api/admin/users', {
+            headers: getAuthHeaders(true)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setUsers(result.data);
+          } else {
+            setError(result.error || 'Gagal memuat daftar user');
+          }
+        } catch (err) {
+          setError('Error: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleCreate = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+        setCreating(true);
+
+        try {
+          const response = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(newUser)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setNewUser({
+              username: '',
+              password: '',
+              role: 'user',
+              accessLegacyReport: true,
+              accessV2Report: true
+            });
+            setRefreshKey((prev) => prev + 1);
+          } else {
+            setFormError(result.error || 'Gagal membuat user');
+          }
+        } catch (err) {
+          setFormError('Error: ' + err.message);
+        } finally {
+          setCreating(false);
+        }
+      };
+
+      const openEdit = (user) => {
+        setEditingUser(user);
+        setEditForm({
+          password: '',
+          role: user.role,
+          accessLegacyReport: user.accessLegacyReport,
+          accessV2Report: user.accessV2Report
+        });
+        setFormError(null);
+      };
+
+      const handleUpdate = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+        setSaving(true);
+
+        try {
+          const payload = {
+            role: editForm.role,
+            accessLegacyReport: editForm.accessLegacyReport,
+            accessV2Report: editForm.accessV2Report
+          };
+          if (editForm.password) {
+            payload.password = editForm.password;
+          }
+
+          const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setEditingUser(null);
+            setRefreshKey((prev) => prev + 1);
+          } else {
+            setFormError(result.error || 'Gagal memperbarui user');
+          }
+        } catch (err) {
+          setFormError('Error: ' + err.message);
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      const handleDelete = async (user) => {
+        if (!confirm(`Hapus user "${user.username}"?`)) return;
+
+        try {
+          const response = await fetch(`/api/admin/users/${user.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(true)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setRefreshKey((prev) => prev + 1);
+          } else {
+            alert(result.error || 'Gagal menghapus user');
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      };
+
+      const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        try {
+          return new Date(dateString).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (e) {
+          return '-';
+        }
+      };
+
+      return (
+        <div className="container">
+          <div className="header">
+            <div className="top-bar">
+              <div>
+                <h1>Kelola User</h1>
+                <p>Halaman admin — kelola akun pengguna</p>
+              </div>
+              <button onClick={onBack} className="btn btn-secondary">← Dashboard</button>
+            </div>
+          </div>
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="card" style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Nama Halaman Report</h2>
+            {labelError && <div className="error">{labelError}</div>}
+            <form onSubmit={handleSaveLabels}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nama Report Legacy</label>
+                  <input
+                    type="text"
+                    value={labelForm.legacyName}
+                    onChange={(e) => setLabelForm({ ...labelForm, legacyName: e.target.value })}
+                    required
+                    maxLength={100}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nama Report Format Baru</label>
+                  <input
+                    type="text"
+                    value={labelForm.v2Name}
+                    onChange={(e) => setLabelForm({ ...labelForm, v2Name: e.target.value })}
+                    required
+                    maxLength={100}
+                  />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={savingLabels}>
+                {savingLabels ? 'Menyimpan...' : 'Simpan Nama Report'}
+              </button>
+            </form>
+          </div>
+
+          <div className="card" style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Tambah User Baru</h2>
+            {formError && !editingUser && <div className="error">{formError}</div>}
+            <form onSubmit={handleCreate}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                    required
+                    minLength={3}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Role</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => {
+                      const role = e.target.value;
+                      setNewUser({
+                        ...newUser,
+                        role,
+                        accessLegacyReport: role === 'admin' ? true : newUser.accessLegacyReport,
+                        accessV2Report: role === 'admin' ? true : newUser.accessV2Report
+                      });
+                    }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Akses Halaman Report</label>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={newUser.accessLegacyReport}
+                      onChange={(e) => setNewUser({ ...newUser, accessLegacyReport: e.target.checked })}
+                      disabled={newUser.role === 'admin'}
+                    />
+                    {reportLabels.legacyName}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={newUser.accessV2Report}
+                      onChange={(e) => setNewUser({ ...newUser, accessV2Report: e.target.checked })}
+                      disabled={newUser.role === 'admin'}
+                    />
+                    {reportLabels.v2Name}
+                  </label>
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={creating}>
+                {creating ? 'Menyimpan...' : 'Tambah User'}
+              </button>
+            </form>
+          </div>
+
+          <div className="card">
+            <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Daftar User</h2>
+            {loading ? (
+              <div className="loading">Memuat data...</div>
+            ) : users.length === 0 ? (
+              <div className="empty-state">Belum ada user terdaftar.</div>
+            ) : (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Username</th>
+                      <th>Role</th>
+                      <th>Akses Report</th>
+                      <th>Tanggal Dibuat</th>
+                      <th style={{ textAlign: 'center' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user, index) => (
+                      <tr key={user.id}>
+                        <td>{index + 1}</td>
+                        <td style={{ fontWeight: '600' }}>
+                          {user.username}
+                          {user.id === currentUser.id && (
+                            <span style={{ marginLeft: '8px', fontSize: '12px', color: '#6b7280' }}>(Anda)</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`role-badge role-${user.role}`}>
+                            {user.role === 'admin' ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`access-tag ${user.accessLegacyReport ? '' : 'disabled'}`}>{reportLabels.legacyName}</span>
+                          <span className={`access-tag ${user.accessV2Report ? '' : 'disabled'}`}>{reportLabels.v2Name}</span>
+                        </td>
+                        <td>{formatDate(user.created_at)}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button onClick={() => openEdit(user)} className="btn btn-secondary">Edit</button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="btn btn-danger"
+                              disabled={user.id === currentUser.id}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {editingUser && (
+            <div className="modal-overlay" onClick={() => setEditingUser(null)}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+                  Edit User: {editingUser.username}
+                </h3>
+                {formError && <div className="error">{formError}</div>}
+                <form onSubmit={handleUpdate}>
+                  <div className="form-group">
+                    <label>Password Baru (kosongkan jika tidak diubah)</label>
+                    <input
+                      type="password"
+                      value={editForm.password}
+                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                      minLength={6}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Role</label>
+                    <select
+                      value={editForm.role}
+                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Akses Halaman Report</label>
+                    <div className="checkbox-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={editForm.accessLegacyReport}
+                          onChange={(e) => setEditForm({ ...editForm, accessLegacyReport: e.target.checked })}
+                          disabled={editForm.role === 'admin'}
+                        />
+                        {reportLabels.legacyName}
+                      </label>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={editForm.accessV2Report}
+                          onChange={(e) => setEditForm({ ...editForm, accessV2Report: e.target.checked })}
+                          disabled={editForm.role === 'admin'}
+                        />
+                        {reportLabels.v2Name}
+                      </label>
+                    </div>
+                    {editForm.role === 'admin' && (
+                      <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                        Admin selalu memiliki akses penuh ke semua report.
+                      </p>
+                    )}
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={() => setEditingUser(null)}>
+                      Batal
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={saving}>
+                      {saving ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const WeighingReceiverDetail = ({ dataId, onBack, apiConfig }) => {
       const [data, setData] = useState(null);
       const [loading, setLoading] = useState(true);
 
@@ -202,7 +1022,9 @@
       const fetchData = async () => {
         try {
           setLoading(true);
-          const response = await fetch(`/api/mo-receiver/${dataId}`);
+          const response = await fetch(apiConfig.detailUrl(dataId), {
+            headers: getAuthHeaders(apiConfig.requireAuth)
+          });
           const result = await response.json();
           
           if (result.success) {
@@ -599,8 +1421,7 @@
       );
     };
 
-    // Main App Component
-    const App = () => {
+    const MoListPage = ({ apiConfig, onBack }) => {
       const [moList, setMoList] = useState([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
@@ -615,7 +1436,9 @@
         try {
           setLoading(true);
           setError(null);
-          const response = await fetch('/api/mo-list');
+          const response = await fetch(apiConfig.listUrl, {
+            headers: getAuthHeaders(apiConfig.requireAuth)
+          });
           const result = await response.json();
           
           if (result.success) {
@@ -636,8 +1459,9 @@
         }
 
         try {
-          const response = await fetch(`/api/mo-receiver/${id}`, {
-            method: 'DELETE'
+          const response = await fetch(apiConfig.deleteUrl(id), {
+            method: 'DELETE',
+            headers: getAuthHeaders(apiConfig.requireAuth)
           });
           const result = await response.json();
           
@@ -669,22 +1493,26 @@
         }
       };
 
-      // If viewing detail, show detail component
       if (selectedMoId) {
         return (
-          <WeighingReceiverDetail 
-            dataId={selectedMoId} 
-            onBack={() => setSelectedMoId(null)} 
+          <WeighingReceiverDetail
+            dataId={selectedMoId}
+            onBack={() => setSelectedMoId(null)}
+            apiConfig={apiConfig}
           />
         );
       }
 
-      // Otherwise, show list
       return (
         <div className="container">
           <div className="header">
-            <h1>📊 MO Receiver - Data Penimbangan</h1>
-            <p>Sistem penerima dan penampil data Manufacturing Order dari website eksternal</p>
+            <div className="top-bar">
+              <div>
+                <h1>{apiConfig.title}</h1>
+                <p>{apiConfig.subtitle}</p>
+              </div>
+              <button onClick={onBack} className="btn btn-secondary">← Dashboard</button>
+            </div>
           </div>
 
           {error && (
@@ -761,13 +1589,12 @@
             )}
           </div>
 
-          {/* API Information */}
           <div className="card" style={{ marginTop: '24px', backgroundColor: '#f9fafb' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>ℹ️ Informasi API Endpoint</h3>
             <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.8' }}>
               <p><strong>Endpoint untuk menerima data:</strong></p>
               <p style={{ marginTop: '4px', fontFamily: 'monospace', backgroundColor: '#fff', padding: '8px', borderRadius: '4px' }}>
-                POST {window.location.origin}/api/mo/receive
+                POST {window.location.origin}{apiConfig.receiveEndpoint}
               </p>
               <p style={{ marginTop: '12px' }}><strong>Header yang diperlukan:</strong></p>
               <p style={{ marginTop: '4px', fontFamily: 'monospace', backgroundColor: '#fff', padding: '8px', borderRadius: '4px' }}>
@@ -780,7 +1607,146 @@
       );
     };
 
-    // Render the app
+    const App = () => {
+      const [view, setView] = useState('loading');
+      const [user, setUser] = useState(null);
+      const [reportType, setReportType] = useState(null);
+      const [reportLabels, setReportLabels] = useState(DEFAULT_REPORT_LABELS);
+
+      useEffect(() => {
+        checkSession();
+      }, []);
+
+      const loadReportLabels = async () => {
+        const labels = await fetchReportLabels();
+        setReportLabels(labels);
+        return labels;
+      };
+
+      const checkSession = async () => {
+        const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) {
+          setView('login');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setUser(result.user);
+            await loadReportLabels();
+            setView('dashboard');
+          } else {
+            sessionStorage.removeItem(AUTH_TOKEN_KEY);
+            setView('login');
+          }
+        } catch (err) {
+          sessionStorage.removeItem(AUTH_TOKEN_KEY);
+          setView('login');
+        }
+      };
+
+      const handleLogout = async () => {
+        const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+          try {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+          } catch (err) {
+            console.error('Logout error:', err);
+          }
+        }
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        setUser(null);
+        setReportType(null);
+        setView('login');
+      };
+
+      if (view === 'loading') {
+        return <div className="loading">Memuat...</div>;
+      }
+
+      if (view === 'login') {
+        return <LoginPage onLoginSuccess={async (loggedInUser) => {
+          setUser(loggedInUser);
+          await loadReportLabels();
+          setView('dashboard');
+        }} />;
+      }
+
+      if (view === 'dashboard') {
+        return (
+          <Dashboard
+            user={user}
+            reportLabels={reportLabels}
+            onSelectReport={(type) => {
+              setReportType(type);
+              setView('report');
+            }}
+            onSelectAdmin={() => setView('admin-users')}
+            onLogout={handleLogout}
+          />
+        );
+      }
+
+      if (view === 'admin-users') {
+        if (user.role !== 'admin') {
+          return (
+            <Dashboard
+              user={user}
+              reportLabels={reportLabels}
+              onSelectReport={(type) => {
+                setReportType(type);
+                setView('report');
+              }}
+              onSelectAdmin={() => {}}
+              onLogout={handleLogout}
+            />
+          );
+        }
+        return (
+          <UserManagerPage
+            currentUser={user}
+            reportLabels={reportLabels}
+            onReportLabelsUpdated={setReportLabels}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      }
+
+      if (view === 'report' && reportType) {
+        if (!canAccessReport(user, reportType)) {
+          return (
+            <div className="container">
+              <div className="card">
+                <div className="error">Anda tidak memiliki akses ke halaman report ini.</div>
+                <button onClick={() => { setReportType(null); setView('dashboard'); }} className="btn btn-secondary" style={{ marginTop: '16px' }}>
+                  ← Kembali ke Dashboard
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <MoListPage
+            apiConfig={buildApiConfig(reportType, reportLabels)}
+            onBack={() => {
+              setReportType(null);
+              setView('dashboard');
+            }}
+          />
+        );
+      }
+
+      return <div className="loading">Memuat...</div>;
+    };
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>

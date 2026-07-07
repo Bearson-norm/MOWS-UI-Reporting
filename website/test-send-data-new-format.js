@@ -18,7 +18,7 @@
 const newFormatData = {
   "workOrder": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "work_order": "MO-2024-001",
+    "work_order": "MO-2024-002",
     "formulation_id": "660e8400-e29b-41d4-a716-446655440000",
     "planned_quantity": 1000.0,
     "status": "completed",
@@ -287,33 +287,30 @@ function transformToServerFormat(newData) {
 }
 
 /**
- * Send data to server
+ * Send data to server (format nested workOrder langsung ke /api/mo-v2/receive)
  */
-async function sendTestData(serverUrl = 'http://localhost:4000') {
+async function sendTestData(serverUrl = 'http://localhost:4001') {
   try {
-    console.log('🔄 Transform data dari format baru ke format server...\n')
-    
-    // Transform data
-    const transformedData = transformToServerFormat(newFormatData)
-    
-    console.log('📊 Data Info:')
-    console.log('Work Order:', transformedData.work_order)
-    console.log('SKU:', transformedData.sku)
-    console.log('Formula:', transformedData.formulation_name)
-    console.log('Status:', transformedData.status)
-    console.log('Ingredients:', transformedData.ingredients.length)
+    const { workOrder, ingredients } = newFormatData
+
+    console.log('📊 Data Info (format nested workOrder):')
+    console.log('Work Order:', workOrder.work_order)
+    console.log('SKU:', workOrder.sku)
+    console.log('Formula:', workOrder.formulation_name)
+    console.log('Status:', workOrder.status)
+    console.log('Ingredients:', ingredients.length)
     console.log('')
     
-    console.log('🚀 Mengirim data ke:', serverUrl + '/api/mo/receive')
+    console.log('🚀 Mengirim data ke:', serverUrl + '/api/mo-v2/receive')
     console.log('')
 
-    const response = await fetch(serverUrl + '/api/mo/receive', {
+    const response = await fetch(serverUrl + '/api/mo-v2/receive', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer TEST_TOKEN_123'
       },
-      body: JSON.stringify(transformedData)
+      body: JSON.stringify(newFormatData)
     })
 
     const result = await response.json()
@@ -324,11 +321,8 @@ async function sendTestData(serverUrl = 'http://localhost:4000') {
       console.log('📋 Response:')
       console.log(JSON.stringify(result, null, 2))
       console.log('')
-      console.log('📊 Buka browser dan akses:')
+      console.log('📊 Buka browser, login, lalu pilih Report Format Baru:')
       console.log('   ' + serverUrl)
-      console.log('')
-      console.log('🔗 View detail report:')
-      console.log('   ' + serverUrl + '/WeighingReceiverDetail.html?id=' + result.id)
     } else {
       console.error('❌ Gagal mengirim data!')
       console.error('Error:', result.error)
@@ -347,7 +341,7 @@ async function sendTestData(serverUrl = 'http://localhost:4000') {
 }
 
 // Get server URL from command line argument or use default
-const serverUrl = process.argv[2] || 'http://localhost:4000'
+const serverUrl = process.argv[2] || 'http://localhost:4001'
 
 console.log('========================================')
 console.log('  Test Send Data - New Format Support  ')
