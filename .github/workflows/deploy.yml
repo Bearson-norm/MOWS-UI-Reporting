@@ -181,23 +181,32 @@ jobs:
             DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}"
             DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
             REPO_CLONE_URL="${{ env.REPO_CLONE_URL }}"
+            DEPLOY_USER=\$(whoami)
+            PARENT_DIR=\$(dirname "\$DEPLOY_PATH")
             echo "🚀 Starting deployment..."
             echo "📍 Deployment path: \$DEPLOY_PATH"
             echo "🌿 Deploy branch: \$DEPLOY_BRANCH"
+            echo "👤 Deploy user: \$DEPLOY_USER"
             
-            # Check if deployment directory exists
+            # Ensure parent and deploy directories exist with correct ownership
+            if [ ! -d "\$PARENT_DIR" ]; then
+              echo "📁 Creating parent directory: \$PARENT_DIR"
+              sudo mkdir -p "\$PARENT_DIR"
+              sudo chown "\$DEPLOY_USER:\$DEPLOY_USER" "\$PARENT_DIR"
+            fi
+            
             if [ ! -d "\$DEPLOY_PATH" ]; then
-              echo "⚠️  Deployment directory does not exist: \$DEPLOY_PATH"
-              echo "📁 Creating directory..."
-              sudo mkdir -p "\$DEPLOY_PATH" || {
-                echo "❌ Failed to create directory. Trying without sudo..."
-                mkdir -p "\$DEPLOY_PATH" || {
-                  echo "❌ Failed to create directory: \$DEPLOY_PATH"
-                  echo "Please create the directory manually or check permissions"
-                  exit 1
-                }
-              }
-              echo "✅ Directory created"
+              echo "📁 Creating deployment directory..."
+              if mkdir -p "\$DEPLOY_PATH" 2>/dev/null; then
+                echo "✅ Directory created"
+              else
+                sudo mkdir -p "\$DEPLOY_PATH"
+                sudo chown -R "\$DEPLOY_USER:\$DEPLOY_USER" "\$DEPLOY_PATH"
+                echo "✅ Directory created with sudo (ownership set to \$DEPLOY_USER)"
+              fi
+            elif [ ! -w "\$DEPLOY_PATH" ]; then
+              echo "⚠️  Deployment directory is not writable. Fixing ownership..."
+              sudo chown -R "\$DEPLOY_USER:\$DEPLOY_USER" "\$DEPLOY_PATH"
             fi
             
             # Check if it's a git repository
@@ -205,16 +214,19 @@ jobs:
               echo "⚠️  Not a git repository. Checking if we need to clone..."
               if [ -z "\$(ls -A \$DEPLOY_PATH 2>/dev/null)" ]; then
                 echo "📥 Directory is empty. Cloning repository..."
-                PARENT_DIR=\$(dirname "\$DEPLOY_PATH")
-                REPO_DIR=\$(basename "\$DEPLOY_PATH")
-                mkdir -p "\$PARENT_DIR"
                 if ! command -v git >/dev/null 2>&1; then
                   echo "❌ git is not installed on VPS"
                   echo "Install with: sudo apt update && sudo apt install -y git"
                   exit 1
                 fi
+                if [ ! -w "\$DEPLOY_PATH" ]; then
+                  echo "❌ Cannot write to \$DEPLOY_PATH even after permission fix"
+                  ls -la "\$PARENT_DIR" || true
+                  exit 1
+                fi
                 git clone --branch "\$DEPLOY_BRANCH" --single-branch "\$REPO_CLONE_URL" "\$DEPLOY_PATH" || {
                   echo "⚠️ Branch \$DEPLOY_BRANCH clone failed, trying default branch..."
+                  rm -rf "\$DEPLOY_PATH/.git" 2>/dev/null || true
                   git clone "\$REPO_CLONE_URL" "\$DEPLOY_PATH" || exit 1
                   cd "\$DEPLOY_PATH"
                   git checkout "\$DEPLOY_BRANCH" || git checkout main || git checkout KMI || exit 1
