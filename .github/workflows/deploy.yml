@@ -3,15 +3,17 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - KMI  # Deploy otomatis saat push ke branch KMI
+      - KMI
+      - main
   workflow_dispatch:  # Manual trigger dari GitHub UI
     inputs:
       branch:
         description: 'Branch to deploy'
         required: true
-        default: 'KMI'
+        default: 'main'
         type: choice
         options:
+          - main
           - KMI
 
 env:
@@ -21,12 +23,14 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.branch || 'KMI' }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
       
       - name: Check package-lock.json exists
         id: check_lockfile
@@ -168,13 +172,18 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}
+          DEPLOY_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
+          REPO_CLONE_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
             set -e  # Exit on error
             
             DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/opt/mo-reporting' }}"
+            DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+            REPO_CLONE_URL="${{ env.REPO_CLONE_URL }}"
             echo "🚀 Starting deployment..."
             echo "📍 Deployment path: \$DEPLOY_PATH"
+            echo "🌿 Deploy branch: \$DEPLOY_BRANCH"
             
             # Check if deployment directory exists
             if [ ! -d "\$DEPLOY_PATH" ]; then
@@ -195,13 +204,22 @@ jobs:
             if [ ! -d "\$DEPLOY_PATH/.git" ]; then
               echo "⚠️  Not a git repository. Checking if we need to clone..."
               if [ -z "\$(ls -A \$DEPLOY_PATH 2>/dev/null)" ]; then
-                echo "📥 Directory is empty. You need to clone the repository first."
-                echo "Run on VPS:"
-                echo "  cd \$(dirname \$DEPLOY_PATH)"
-                echo "  git clone YOUR_REPOSITORY_URL \$(basename \$DEPLOY_PATH)"
-                echo "  cd \$DEPLOY_PATH"
-                echo "  git checkout KMI"
-                exit 1
+                echo "📥 Directory is empty. Cloning repository..."
+                PARENT_DIR=\$(dirname "\$DEPLOY_PATH")
+                REPO_DIR=\$(basename "\$DEPLOY_PATH")
+                mkdir -p "\$PARENT_DIR"
+                if ! command -v git >/dev/null 2>&1; then
+                  echo "❌ git is not installed on VPS"
+                  echo "Install with: sudo apt update && sudo apt install -y git"
+                  exit 1
+                fi
+                git clone --branch "\$DEPLOY_BRANCH" --single-branch "\$REPO_CLONE_URL" "\$DEPLOY_PATH" || {
+                  echo "⚠️ Branch \$DEPLOY_BRANCH clone failed, trying default branch..."
+                  git clone "\$REPO_CLONE_URL" "\$DEPLOY_PATH" || exit 1
+                  cd "\$DEPLOY_PATH"
+                  git checkout "\$DEPLOY_BRANCH" || git checkout main || git checkout KMI || exit 1
+                }
+                echo "✅ Repository cloned to \$DEPLOY_PATH"
               else
                 echo "⚠️  Directory exists but is not a git repository"
                 echo "Please ensure repository is cloned to: \$DEPLOY_PATH"
@@ -216,6 +234,9 @@ jobs:
             }
             echo "✅ Changed to deployment directory: \$(pwd)"
             
+            # Refresh authenticated remote URL for private repo pulls
+            git remote set-url origin "\$REPO_CLONE_URL" 2>/dev/null || true
+            
             # Backup current database (if exists)
             if [ -f "website/kmi_receiver.db" ]; then
               echo "💾 Backing up database..."
@@ -224,7 +245,7 @@ jobs:
             fi
             
             # Pull latest code
-            echo "📥 Pulling latest code from branch KMI..."
+            echo "📥 Pulling latest code from branch \$DEPLOY_BRANCH..."
             git fetch origin || {
               echo "⚠️ git fetch failed, trying to initialize if needed..."
               if [ ! -d ".git" ]; then
@@ -232,13 +253,13 @@ jobs:
                 exit 1
               fi
             }
-            git checkout KMI || {
-              echo "⚠️ Branch KMI not found locally, creating from origin..."
-              git checkout -b KMI origin/KMI || exit 1
+            git checkout "\$DEPLOY_BRANCH" || {
+              echo "⚠️ Branch \$DEPLOY_BRANCH not found locally, creating from origin..."
+              git checkout -b "\$DEPLOY_BRANCH" "origin/\$DEPLOY_BRANCH" || exit 1
             }
-            git pull origin KMI || {
+            git pull origin "\$DEPLOY_BRANCH" || {
               echo "⚠️ git pull failed, trying to reset..."
-              git reset --hard origin/KMI || exit 1
+              git reset --hard "origin/\$DEPLOY_BRANCH" || exit 1
             }
             
             # Show current commit
@@ -259,6 +280,21 @@ jobs:
               exit 1
             }
             echo "✅ Changed to website directory: $(pwd)"
+            
+            # Create minimal .env on first deploy if missing
+            if [ ! -f ".env" ] && [ ! -f "../.env" ]; then
+              echo "⚠️  No .env found. Creating minimal first-run config (SQLite)..."
+              cat > .env << 'ENVEOF'
+PORT=4001
+HOST=0.0.0.0
+NODE_ENV=production
+DB_TYPE=sqlite
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+SESSION_EXPIRY_HOURS=24
+ENVEOF
+              echo "⚠️  Update website/.env with production credentials after deploy"
+            fi
             
             # Check if package.json exists
             if [ ! -f "package.json" ]; then
