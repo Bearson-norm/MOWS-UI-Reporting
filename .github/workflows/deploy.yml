@@ -284,15 +284,15 @@ jobs:
             # Create minimal .env on first deploy if missing
             if [ ! -f ".env" ] && [ ! -f "../.env" ]; then
               echo "⚠️  No .env found. Creating minimal first-run config (SQLite)..."
-              cat > .env << 'ENVEOF'
-PORT=4001
-HOST=0.0.0.0
-NODE_ENV=production
-DB_TYPE=sqlite
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-SESSION_EXPIRY_HOURS=24
-ENVEOF
+              printf '%s\n' \
+                'PORT=4001' \
+                'HOST=0.0.0.0' \
+                'NODE_ENV=production' \
+                'DB_TYPE=sqlite' \
+                'ADMIN_USERNAME=admin' \
+                'ADMIN_PASSWORD=admin123' \
+                'SESSION_EXPIRY_HOURS=24' \
+                > .env
               echo "⚠️  Update website/.env with production credentials after deploy"
             fi
             
