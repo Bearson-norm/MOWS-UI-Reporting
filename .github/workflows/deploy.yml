@@ -297,7 +297,7 @@ jobs:
             if [ ! -f ".env" ] && [ ! -f "../.env" ]; then
               echo "⚠️  No .env found. Creating minimal first-run config (SQLite)..."
               printf '%s\n' \
-                'PORT=4001' \
+                'PORT=4000' \
                 'HOST=0.0.0.0' \
                 'NODE_ENV=production' \
                 'DB_TYPE=sqlite' \
@@ -336,20 +336,18 @@ jobs:
               exit 1
             }
             
-            # Check if PM2 process exists
-            echo "🔄 Checking PM2 process..."
+            # Redeploy PM2 from latest code (restart alone keeps old script path/cwd)
+            echo "🔄 Redeploying PM2 process..."
             if pm2 list | grep -q "mo-receiver-kmi"; then
               echo "⚠️  Removing legacy PM2 process name mo-receiver-kmi..."
               pm2 delete mo-receiver-kmi || true
             fi
             if pm2 list | grep -q "mo-receiver"; then
-              echo "✅ PM2 process found, restarting..."
-              pm2 restart mo-receiver
-            else
-              echo "🆕 PM2 process not found, starting new process..."
-              # Start PM2 from website directory
-              pm2 start server.js --name mo-receiver --cwd "\$DEPLOY_PATH/website"
+              echo "♻️  Stopping existing mo-receiver process..."
+              pm2 delete mo-receiver || true
             fi
+            echo "🆕 Starting mo-receiver from \$DEPLOY_PATH/website..."
+            pm2 start server.js --name mo-receiver --cwd "\$DEPLOY_PATH/website"
             
             # Save PM2 process list
             pm2 save || echo "⚠️ Failed to save PM2 process list (non-critical)"
@@ -365,6 +363,16 @@ jobs:
             # Wait for server startup and migrations
             sleep 5
 
+            # Resolve app port from .env (production commonly uses 4000)
+            APP_PORT=\$(grep -E '^PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2- | xargs || true)
+            if [ -z "\$APP_PORT" ] && [ -f "../.env" ]; then
+              APP_PORT=\$(grep -E '^PORT=' ../.env 2>/dev/null | tail -1 | cut -d= -f2- | xargs || true)
+            fi
+            if [ -z "\$APP_PORT" ]; then
+              APP_PORT=4000
+            fi
+            echo "🔍 Health check on port \$APP_PORT..."
+
             # Verify health endpoint and migration success
             ERROR_LOGS=\$(pm2 logs mo-receiver --lines 50 --nostream 2>/dev/null | grep -E "Error (creating tables|migrating|seeding|connecting)" || true)
             if [ -n "\$ERROR_LOGS" ]; then
@@ -373,7 +381,7 @@ jobs:
               exit 1
             fi
 
-            HEALTH_RESPONSE=\$(curl -sf http://127.0.0.1:4001/api/health || true)
+            HEALTH_RESPONSE=\$(curl -sf "http://127.0.0.1:\$APP_PORT/api/health" || true)
             if [ -z "\$HEALTH_RESPONSE" ]; then
               echo "❌ Health check failed: /api/health not reachable"
               pm2 logs mo-receiver --lines 30 --nostream
@@ -407,12 +415,20 @@ jobs:
               echo "❌ Failed to change to website directory"
               exit 1
             }
+
+            APP_PORT=\$(grep -E '^PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2- | xargs || true)
+            if [ -z "\$APP_PORT" ] && [ -f "../.env" ]; then
+              APP_PORT=\$(grep -E '^PORT=' ../.env 2>/dev/null | tail -1 | cut -d= -f2- | xargs || true)
+            fi
+            if [ -z "\$APP_PORT" ]; then
+              APP_PORT=4000
+            fi
             
             # Check PM2 process status
             if pm2 list | grep -q "mo-receiver.*online"; then
               echo "✅ Application is running"
               pm2 logs mo-receiver --lines 10 --nostream
-              curl -sf http://127.0.0.1:4001/api/health || {
+              curl -sf "http://127.0.0.1:\$APP_PORT/api/health" || {
                 echo "❌ Health check failed during verification"
                 exit 1
               }
