@@ -253,7 +253,7 @@ jobs:
             if [ -f "website/kmi_receiver.db" ]; then
               echo "💾 Backing up database..."
               mkdir -p backups
-              cp website/kmi_receiver.db backups/kmi_receiver_backup_$(date +%Y%m%d_%H%M%S).db || true
+              cp website/kmi_receiver.db backups/kmi_receiver_backup_\$(date +%Y%m%d_%H%M%S).db || true
             fi
             
             # Pull latest code
@@ -275,8 +275,8 @@ jobs:
             }
             
             # Show current commit
-            echo "📌 Current commit: $(git rev-parse --short HEAD)"
-            echo "📝 Commit message: $(git log -1 --pretty=%B)"
+            echo "📌 Current commit: \$(git rev-parse --short HEAD)"
+            echo "📝 Commit message: \$(git log -1 --pretty=%B)"
             
             # Check if website directory exists
             if [ ! -d "website" ]; then
@@ -291,7 +291,7 @@ jobs:
               echo "❌ Failed to change to website directory"
               exit 1
             }
-            echo "✅ Changed to website directory: $(pwd)"
+            echo "✅ Changed to website directory: \$(pwd)"
             
             # Create minimal .env on first deploy if missing
             if [ ! -f ".env" ] && [ ! -f "../.env" ]; then
@@ -344,7 +344,7 @@ jobs:
             else
               echo "🆕 PM2 process not found, starting new process..."
               # Start PM2 from website directory
-              pm2 start server.js --name mo-receiver-kmi --cwd $(pwd)
+              pm2 start server.js --name mo-receiver-kmi --cwd "\$DEPLOY_PATH/website"
             fi
             
             # Save PM2 process list
@@ -362,22 +362,22 @@ jobs:
             sleep 5
 
             # Verify health endpoint and migration success
-            ERROR_LOGS=$(pm2 logs mo-receiver-kmi --lines 50 --nostream 2>/dev/null | grep -E "Error (creating tables|migrating|seeding|connecting)" || true)
-            if [ -n "$ERROR_LOGS" ]; then
+            ERROR_LOGS=\$(pm2 logs mo-receiver-kmi --lines 50 --nostream 2>/dev/null | grep -E "Error (creating tables|migrating|seeding|connecting)" || true)
+            if [ -n "\$ERROR_LOGS" ]; then
               echo "❌ Database initialization errors detected in PM2 logs:"
-              echo "$ERROR_LOGS"
+              echo "\$ERROR_LOGS"
               exit 1
             fi
 
-            HEALTH_RESPONSE=$(curl -sf http://127.0.0.1:4001/api/health || true)
-            if [ -z "$HEALTH_RESPONSE" ]; then
+            HEALTH_RESPONSE=\$(curl -sf http://127.0.0.1:4001/api/health || true)
+            if [ -z "\$HEALTH_RESPONSE" ]; then
               echo "❌ Health check failed: /api/health not reachable"
               pm2 logs mo-receiver-kmi --lines 30 --nostream
               exit 1
             fi
-            echo "✅ Health check response: $HEALTH_RESPONSE"
+            echo "✅ Health check response: \$HEALTH_RESPONSE"
 
-            if ! echo "$HEALTH_RESPONSE" | grep -q '"dbReady":true\|"dbReady": true'; then
+            if ! echo "\$HEALTH_RESPONSE" | grep -q '"dbReady":true\|"dbReady": true'; then
               echo "❌ Database not ready after deployment"
               pm2 logs mo-receiver-kmi --lines 30 --nostream
               exit 1
