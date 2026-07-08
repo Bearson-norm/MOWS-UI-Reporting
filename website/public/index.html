@@ -397,6 +397,38 @@
       v2Name: 'Report Format Baru'
     };
 
+    const normalizeMoStatus = (status, endTime) => {
+      if (status == null || String(status).trim() === '') {
+        return endTime ? 'completed' : 'pending';
+      }
+      const normalized = String(status).trim().toLowerCase();
+      if (['completed', 'complete', 'selesai', 'done', 'finished', 'finish'].includes(normalized)) return 'completed';
+      if (['in_progress', 'in progress', 'inprogress', 'progress', 'sedang berjalan', 'weighing', 'active', 'running'].includes(normalized)) return 'in_progress';
+      if (['reject', 'rejected', 'ditolak', 'cancelled', 'canceled', 'cancel'].includes(normalized)) return 'reject';
+      if (['pending', 'waiting', 'open', 'new'].includes(normalized)) return endTime ? 'completed' : 'pending';
+      return endTime ? 'completed' : 'pending';
+    };
+
+    const getStatusLabel = (status, endTime, useLegacyStatusRules = false) => {
+      if (useLegacyStatusRules) {
+        const normalized = normalizeMoStatus(status, endTime);
+        if (normalized === 'completed') return 'Selesai';
+        if (normalized === 'reject') return 'Ditolak';
+        if (normalized === 'in_progress') return 'Sedang Berjalan';
+        return 'Pending';
+      }
+
+      if (status === 'completed') return 'Selesai';
+      if (status === 'reject') return 'Ditolak';
+      if (status === 'in_progress') return 'Sedang Berjalan';
+      return 'Pending';
+    };
+
+    const getStatusClass = (status, endTime, useLegacyStatusRules = false) => {
+      if (useLegacyStatusRules) return normalizeMoStatus(status, endTime);
+      return status || 'pending';
+    };
+
     const buildApiConfig = (type, labels = DEFAULT_REPORT_LABELS) => {
       if (type === 'legacy') {
         return {
@@ -404,6 +436,7 @@
           detailUrl: (id) => `/api/mo-receiver/${id}`,
           deleteUrl: (id) => `/api/mo-receiver/${id}`,
           requireAuth: false,
+          useLegacyStatusRules: true,
           title: labels.legacyName,
           subtitle: 'Data dari endpoint lama (format flat)',
           receiveEndpoint: '/api/mo/receive'
@@ -414,6 +447,7 @@
         detailUrl: (id) => `/api/mo-v2-receiver/${id}`,
         deleteUrl: (id) => `/api/mo-v2-receiver/${id}`,
         requireAuth: true,
+        useLegacyStatusRules: false,
         title: labels.v2Name,
         subtitle: 'Data dari endpoint v2 (format nested workOrder)',
         receiveEndpoint: '/api/mo-v2/receive'
@@ -1293,10 +1327,8 @@
                   <div style={{ fontSize: '18px', color: '#6b7280', marginBottom: '4px' }}>{workOrder.formulation_name}</div>
                   <div style={{ fontSize: '14px', color: '#9ca3af' }}>SKU: {workOrder.sku}</div>
                 </div>
-                <span className={`status-badge status-${workOrder.status}`}>
-                  {workOrder.status === 'completed' ? 'Selesai' : 
-                   workOrder.status === 'reject' ? 'Ditolak' :
-                   workOrder.status === 'in_progress' ? 'Sedang Berjalan' : 'Pending'}
+                <span className={`status-badge status-${getStatusClass(workOrder.status, workOrder.end_time, apiConfig.useLegacyStatusRules)}`}>
+                  {getStatusLabel(workOrder.status, workOrder.end_time, apiConfig.useLegacyStatusRules)}
                 </span>
               </div>
 
@@ -1558,10 +1590,8 @@
                         <td>{mo.sku || '-'}</td>
                         <td>{mo.formulation_name || '-'}</td>
                         <td>
-                          <span className={`status-badge status-${mo.status}`}>
-                            {mo.status === 'completed' ? 'Selesai' : 
-                             mo.status === 'reject' ? 'Ditolak' :
-                             mo.status === 'in_progress' ? 'Sedang Berjalan' : 'Pending'}
+                          <span className={`status-badge status-${getStatusClass(mo.status, mo.end_time, apiConfig.useLegacyStatusRules)}`}>
+                            {getStatusLabel(mo.status, mo.end_time, apiConfig.useLegacyStatusRules)}
                           </span>
                         </td>
                         <td>{formatDate(mo.updated_at)}</td>

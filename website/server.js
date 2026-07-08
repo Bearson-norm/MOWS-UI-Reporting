@@ -20,6 +20,98 @@ const SESSION_EXPIRY_HOURS = parseInt(process.env.SESSION_EXPIRY_HOURS || '24', 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
+function normalizeMoStatus(status, endTime) {
+  if (status == null || String(status).trim() === '') {
+    return endTime ? 'completed' : 'pending'
+  }
+
+  const normalized = String(status).trim().toLowerCase()
+
+  if (['completed', 'complete', 'selesai', 'done', 'finished', 'finish'].includes(normalized)) {
+    return 'completed'
+  }
+  if (['in_progress', 'in progress', 'inprogress', 'progress', 'sedang berjalan', 'weighing', 'active', 'running'].includes(normalized)) {
+    return 'in_progress'
+  }
+  if (['reject', 'rejected', 'ditolak', 'cancelled', 'canceled', 'cancel'].includes(normalized)) {
+    return 'reject'
+  }
+  if (['pending', 'waiting', 'open', 'new'].includes(normalized)) {
+    return endTime ? 'completed' : 'pending'
+  }
+
+  return endTime ? 'completed' : 'pending'
+}
+
+// Legacy API helpers only — used by /api/mo/receive, /api/mo-list, /api/mo-receiver/*
+function flattenLegacyPayload(body) {
+  if (!body || typeof body !== 'object') return body
+
+  const workOrder = body.workOrder || body.work_order_object
+  if (!workOrder || typeof workOrder !== 'object') return body
+
+  return {
+    ...workOrder,
+    work_order: body.work_order || workOrder.work_order,
+    ingredients: body.ingredients || workOrder.ingredients || [],
+    operator_name: body.operator_name || workOrder.operator_name || workOrder.operator_full_name
+  }
+}
+
+function isIngredientWeighed(ingredient) {
+  if (!ingredient || typeof ingredient !== 'object') return false
+
+  const status = String(ingredient.current_status || ingredient.status || '').trim().toLowerCase()
+  if (['completed', 'complete', 'selesai', 'done', 'finished'].includes(status)) return true
+
+  if (Array.isArray(ingredient.sessions) && ingredient.sessions.length > 0) {
+    return ingredient.sessions.every((session) => {
+      const sessionStatus = String(session.status || '').trim().toLowerCase()
+      return ['completed', 'complete', 'selesai', 'done', 'finished'].includes(sessionStatus)
+    })
+  }
+
+  return parseFloat(ingredient.current_accumulated_mass || 0) > 0
+}
+
+function hasCompletedWeighing(ingredients) {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return false
+  return ingredients.every(isIngredientWeighed)
+}
+
+function resolveLegacyStoredData(fullData, row = {}) {
+  const nested = fullData.workOrder && typeof fullData.workOrder === 'object' ? fullData.workOrder : {}
+  const ingredients = fullData.ingredients || nested.ingredients || []
+  const sku = row.sku || fullData.sku || nested.sku || nested.product_name || null
+  const formulation_name = row.formulation_name || fullData.formulation_name || nested.formulation_name || sku || ingredients[0]?.ingredient_name || null
+  const production_date = row.production_date || fullData.production_date || nested.production_date || null
+  const operator_name = row.operator_name || fullData.operator_name || nested.operator_name || nested.operator_full_name || null
+  const end_time = row.end_time || fullData.end_time || nested.end_time || nested.completed_at || null
+  let planned_quantity = row.planned_quantity ?? fullData.planned_quantity ?? nested.planned_quantity
+
+  if ((planned_quantity == null || Number(planned_quantity) === 0) && ingredients.length > 0) {
+    planned_quantity = ingredients.reduce((sum, ingredient) => sum + parseFloat(ingredient.target_mass || 0), 0)
+  }
+
+  let status = row.status || fullData.status || nested.status
+  status = normalizeMoStatus(status, end_time)
+  if (status === 'pending' && hasCompletedWeighing(ingredients)) {
+    status = 'completed'
+  }
+
+  return {
+    work_order: row.work_order || fullData.work_order || nested.work_order,
+    sku,
+    formulation_name,
+    production_date,
+    planned_quantity,
+    operator_name,
+    end_time,
+    status,
+    ingredients
+  }
+}
+
 // Database configuration
 const DB_TYPE = process.env.DB_TYPE || 'sqlite' // 'sqlite' or 'postgresql'
 let db = null
@@ -510,7 +602,7 @@ app.post('/api/mo/receive', (req, res) => {
     // TODO: Verify token here if needed
     // For now, we accept any token for testing
 
-    const data = req.body
+    const data = flattenLegacyPayload(req.body)
 
     // Validate required fields
     if (!data.work_order) {
@@ -527,13 +619,18 @@ app.post('/api/mo/receive', (req, res) => {
       formulation_name,
       production_date,
       planned_quantity,
-      status,
+      status: rawStatus,
       operator_name,
       end_time
     } = data
 
+    const status = normalizeMoStatus(rawStatus, end_time)
+    const resolvedStatus = status === 'pending' && hasCompletedWeighing(data.ingredients) ? 'completed' : status
+    const resolvedSku = sku || data.ingredients?.[0]?.ingredient_name || null
+    const resolvedFormulation = formulation_name || resolvedSku
+
     // Store complete JSON for later retrieval
-    const dataJson = JSON.stringify(data)
+    const dataJson = JSON.stringify({ ...data, status: resolvedStatus, sku: resolvedSku, formulation_name: resolvedFormulation })
 
     // Insert or update data
     // For PostgreSQL, we need to handle ON CONFLICT differently and get the ID back
@@ -558,11 +655,11 @@ app.post('/api/mo/receive', (req, res) => {
       
       db.query(upsertSql, [
         work_order,
-        sku,
-        formulation_name,
+        resolvedSku,
+        resolvedFormulation,
         production_date,
         planned_quantity,
-        status,
+        resolvedStatus,
         operator_name,
         end_time,
         dataJson
@@ -621,11 +718,11 @@ app.post('/api/mo/receive', (req, res) => {
 
       db.run(sql, [
         work_order,
-        sku,
-        formulation_name,
+        resolvedSku,
+        resolvedFormulation,
         production_date,
         planned_quantity,
-        status,
+        resolvedStatus,
         operator_name,
         end_time,
         dataJson
@@ -683,8 +780,10 @@ app.get('/api/mo-list', (req, res) => {
       production_date,
       planned_quantity,
       operator_name,
+      end_time,
       created_at,
-      updated_at
+      updated_at,
+      data_json
     FROM received_work_orders
     ORDER BY updated_at DESC
   `
@@ -700,7 +799,36 @@ app.get('/api/mo-list', (req, res) => {
 
     res.json({
       success: true,
-      data: rows || []
+      data: (rows || []).map((row) => {
+        let resolved = {
+          ...row,
+          status: normalizeMoStatus(row.status, row.end_time)
+        }
+
+        if (row.data_json) {
+          try {
+            const fullData = JSON.parse(row.data_json)
+            const merged = resolveLegacyStoredData(fullData, row)
+            resolved = {
+              id: row.id,
+              work_order: merged.work_order,
+              sku: merged.sku,
+              formulation_name: merged.formulation_name,
+              status: merged.status,
+              production_date: merged.production_date,
+              planned_quantity: merged.planned_quantity,
+              operator_name: merged.operator_name,
+              end_time: merged.end_time,
+              created_at: row.created_at,
+              updated_at: row.updated_at
+            }
+          } catch (parseError) {
+            console.error('Error parsing MO list data_json:', parseError.message)
+          }
+        }
+
+        return resolved
+      }).map(({ data_json, ...item }) => item)
     })
   })
 })
@@ -736,20 +864,20 @@ app.get('/api/mo-receiver/:id', (req, res) => {
 
     try {
       const fullData = JSON.parse(row.data_json)
-      
-      // Transform data to match the expected format
+      const resolved = resolveLegacyStoredData(fullData, {})
+
       const responseData = {
         workOrder: {
-          work_order: fullData.work_order,
-          sku: fullData.sku,
-          formulation_name: fullData.formulation_name,
-          production_date: fullData.production_date,
-          planned_quantity: fullData.planned_quantity,
-          status: fullData.status,
-          operator_name: fullData.operator_name,
-          end_time: fullData.end_time
+          work_order: resolved.work_order,
+          sku: resolved.sku,
+          formulation_name: resolved.formulation_name,
+          production_date: resolved.production_date,
+          planned_quantity: resolved.planned_quantity,
+          status: resolved.status,
+          operator_name: resolved.operator_name,
+          end_time: resolved.end_time
         },
-        ingredients: fullData.ingredients || []
+        ingredients: resolved.ingredients
       }
 
       res.json({
@@ -1393,11 +1521,12 @@ app.post('/api/mo-v2/receive', (req, res) => {
       formulation_name,
       production_date,
       planned_quantity,
-      status,
+      status: rawStatus,
       operator_name,
       end_time
     } = workOrder
 
+    const status = rawStatus
     const dataJson = JSON.stringify(data)
 
     if (DB_TYPE === 'postgresql') {
@@ -1540,6 +1669,7 @@ app.get('/api/mo-v2-list', requireSession, requireReportAccess('v2'), (req, res)
       production_date,
       planned_quantity,
       operator_name,
+      end_time,
       created_at,
       updated_at
     FROM received_work_orders_v2
